@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v2_facilityControls.js
-UPDATED: 2026-05-29 07:15:00 AM
+UPDATED: 2026-05-29 08:10:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -31,7 +31,6 @@ export async function renderFacilityControls(facility) {
     const app = document.getElementById('app');
     if (!app) return;
 
-    // Ensure window.navigateTo exists as a fallback
     window.navigateTo = window.navigateTo || function(view, facility) {
         console.log('Navigate to (fallback):', view, facility);
         alert(`Navigate to: ${view}`);
@@ -100,7 +99,10 @@ export async function renderFacilityControls(facility) {
 
     await loadBadges();
 
-    // --- Supabase v2 real-time subscription ---
+    // --- Remove previous channel to prevent duplicate callbacks ---
+    const existingChannel = supabase.getChannels().find(c => c.topic === `public:facility_project_issues`);
+    if (existingChannel) supabase.removeChannel(existingChannel);
+
     const controlsChannel = supabase
       .channel(`public:facility_project_issues`)
       .on(
@@ -120,4 +122,4 @@ export async function renderFacilityControls(facility) {
 }
 
 // --- VER TAG ---
-console.log("Updated: 2026-05-29 07:15 AM • v2_facilityControls.js");
+console.log("Updated: 2026-05-29 08:10 AM • v2_facilityControls.js");
