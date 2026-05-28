@@ -118,3 +118,6 @@ export async function renderFacilityControls(facility) {
     document.getElementById('toGallery').onclick = () => window.navigateTo('facilityImages', facility);
     document.getElementById('backDash').onclick = () => window.navigateTo('dashboard', facility);
 }
+
+// --- VER TAG ---
+console.log("Updated: 2026-05-29 07:15 AM • v2_facilityControls.js");
