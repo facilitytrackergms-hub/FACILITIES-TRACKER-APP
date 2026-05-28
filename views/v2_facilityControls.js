@@ -1,10 +1,29 @@
 /* =================================================
 FILE: views/v2_facilityControls.js
-UPDATED: 2026-05-29 07:10:00 AM
+UPDATED: 2026-05-29 07:15:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
 Always keep this header at the top of current files and new files.
+
+STRICT FILE RULES:
+1. Always output the full, complete file content.
+2. NEVER ask the user to "find and replace" or manually edit code.
+3. DO NOT change code, logic, or styling unless explicitly requested.
+4. Keep the file exactly as it is, only applying the requested updates.
+5. WE CANNOT CREATE EMPTY FILES. Validation is required.
+6. Always update the visible version tag for every touched view/file, including V1. If any code update affects the app, update the visible bottom version label with the current date, time, and exact file name.
+
+GITHUB PUSH RULE:
+1. Never do full-file replacement when pushing directly to GitHub unless the file is small and the change is simple.
+2. Fetch the current file from GitHub first.
+3. Make the smallest possible code change.
+4. Push only the targeted section that needs the update.
+5. If the request is large, split it into small commits.
+6. If a full-file replacement is needed, create/download the full file for manual upload instead of pushing the whole file through the GitHub tool.
+7. Never touch unrelated files or unrelated sections.
+8. Always confirm whether the push succeeded or failed.
+9. If GitHub blocks the write action, explain clearly that nothing was pushed.
 ================================================= */
 import { supabase } from '../js/supabaseClient.js';
 
