@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v1_facilitiesDashboard.js
-UPDATED: 2026-05-29 06:15:00 AM
+UPDATED: 2026-05-29 07:05:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -41,11 +41,51 @@ export async function renderFacilities() {
                 <div id="list" class="button-container">Loading...</div>
             </div>
         </div>
+
+        <!-- Facility Modal -->
+        <div id="facilityModal" class="modal-overlay hidden">
+            <div class="modal-box">
+                <h3>Create New Facility</h3>
+                <input type="text" id="newFacilityName" placeholder="Facility Name">
+                <div style="margin-top:20px;">
+                    <button id="saveFacilityBtn" class="facility-btn new-btn">Save Facility</button>
+                    <button id="closeFacilityBtn" class="facility-btn" style="background:#777; margin-left:10px;">Cancel</button>
+                </div>
+            </div>
+        </div>
     `;
 
     const facilitySearch = document.getElementById('facilitySearch');
     const issueFilter = document.getElementById('issueFilter');
     const list = document.getElementById('list');
+
+    const openModalBtn = document.getElementById('openModal');
+    const modal = document.getElementById('facilityModal');
+    const saveFacilityBtn = document.getElementById('saveFacilityBtn');
+    const closeFacilityBtn = document.getElementById('closeFacilityBtn');
+    const newFacilityInput = document.getElementById('newFacilityName');
+
+    // Open modal
+    openModalBtn.onclick = () => {
+        modal.classList.remove('hidden');
+        newFacilityInput.value = '';
+        newFacilityInput.focus();
+    };
+
+    // Close modal
+    closeFacilityBtn.onclick = () => modal.classList.add('hidden');
+
+    // Save new facility
+    saveFacilityBtn.onclick = async () => {
+        const name = newFacilityInput.value.trim();
+        if (!name) return alert("Enter a facility name.");
+
+        const { data, error } = await supabase.from('FACILITIES').insert([{ Name: name }]);
+        if (error) return alert("Error saving facility: " + error.message);
+
+        modal.classList.add('hidden');
+        await loadFacilities();
+    };
 
     async function loadFacilities() {
         const { data: facilities } = await supabase.from('FACILITIES').select('*');
