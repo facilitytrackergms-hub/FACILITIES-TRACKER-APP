@@ -29,7 +29,7 @@ GITHUB PUSH RULE:
 
 import { renderFacilities } from '../views/v1_facilitiesDashboard.js';
 import { renderFacilityControls } from '../views/v2_facilityControls.js';
-import { renderFacilityContacts } from '../views/v3_FacilityContacts.js';
+import { renderContacts as renderFacilityContacts } from '../views/v3_FacilityContacts.js';
 import { renderPendingProjects } from '../views/v4_pendingProjects.js';
 import { renderFacilityIssues } from '../views/v5_FacilityIssues.js';
 import { renderFacilityImages } from '../views/v6_FacilityImages.js';
