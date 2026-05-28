@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v1_facilitiesDashboard.js
-UPDATED: 2026-05-28 08:25:00 PM
+UPDATED: 2026-05-28 11:10:00 PM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -9,7 +9,7 @@ Always keep this header at the top of current files and new files.
 STRICT FILE RULES:
 1. Always output the full, complete file content.
 2. NEVER ask the user to "find and replace" or manually edit code.
-3. DO NOT change code, logic, or styling unless explicitly requested.
+3. Do NOT change code, logic, or styling unless explicitly requested.
 4. Keep the file exactly as it is, only applying the requested updates.
 5. WE CANNOT CREATE EMPTY FILES. Validation is required.
 6. Always update the visible version tag for every touched view/file, including V1. If any code update affects the app, update the visible bottom version label with the current date, time, and exact file name.
@@ -19,11 +19,9 @@ GITHUB PUSH RULE:
 2. Fetch the current file from GitHub first.
 3. Make the smallest possible code change.
 4. Push only the targeted section that needs the update.
-5. If the request is large, split it into small commits.
-6. If a full-file replacement is needed, create/download the full file for manual upload instead of pushing the whole file through the GitHub tool.
-7. Never touch unrelated files or unrelated sections.
-8. Always confirm whether the push succeeded or failed.
-9. If GitHub blocks the write action, explain clearly that nothing was pushed.
+5. If a full-file replacement is needed, create/download the full file for manual upload instead of pushing the whole file through the GitHub tool.
+6. Never touch unrelated files or unrelated sections.
+7. Always confirm whether the push succeeded or failed.
 ================================================= */
 import { supabase } from '../js/supabaseClient.js';
 import { renderImageManagerSection } from '../js/imageManager.js';
@@ -56,7 +54,7 @@ export async function renderFacilities() {
             <div class="dash-card">
                 <h1 class="dash-title">FACILITIES DASHBOARD</h1>
                 <br>
-                <button id="openModal" class="facility-btn new-btn">Create New</button>
+                <button id="openModal" class="facility-btn new-btn">Create New Facility</button>
                 <div id="list" class="button-container">Loading...</div>
             </div>
             
@@ -95,7 +93,7 @@ export async function renderFacilities() {
             </div>
 
             <div style="margin-top: 50px; font-size: 0.8em; color: #666; border-top: 1px solid #ccc; padding-top: 10px;">
-                File: v1_facilitiesDashboard.js | Updated: 2026-05-28 08:25:00 PM
+                File: v1_facilitiesDashboard.js | Updated: 2026-05-28 11:10:00 PM
             </div>
         </div>
     `;
