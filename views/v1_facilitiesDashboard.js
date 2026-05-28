@@ -84,3 +84,10 @@ export async function renderFacilities() {
 
     await loadFacilities();
 }
+/* Add this at the end of v1_facilitiesDashboard.js after loadFacilities() */
+
+supabase
+  .from('FACILITY_PROJECT_ISSUES')
+  .on('INSERT', payload => loadFacilities())
+  .on('UPDATE', payload => loadFacilities())
+  .subscribe();
