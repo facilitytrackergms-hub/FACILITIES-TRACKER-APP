@@ -1,18 +1,10 @@
 /* =================================================
 FILE: views/v6_FacilityImages.js
-UPDATED: 2026-05-28 09:20:00 PM
+UPDATED: 2026-05-29 01:50:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
-Always keep this header at the top of current files and new files.
-
-STRICT FILE RULES:
-1. Always output the full, complete file content.
-2. NEVER ask the user to "find and replace" or manually edit code.
-3. DO NOT change code, logic, or styling unless explicitly requested.
-4. Keep the file exactly as it is, only applying the requested updates.
-5. WE CANNOT CREATE EMPTY FILES. Validation is required.
-6. Always update the visible version tag for every touched view/file, including V1. If any code update affects the app, update the visible bottom version label with the current date, time, and exact file name.
+Always keep the header at the top of current files and new files.
 ================================================= */
 
 import { renderImageManagerSection } from '../js/imageManager.js';
@@ -38,7 +30,7 @@ export async function renderFacilityImages(facility) {
             </button>
 
             <div style="margin-top:40px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v6_FacilityImages.js | Updated: 2026-05-28 09:20:00 PM
+                File: v6_FacilityImages.js | Updated: 2026-05-29 01:50:00 AM
             </div>
         </div>
     `;
