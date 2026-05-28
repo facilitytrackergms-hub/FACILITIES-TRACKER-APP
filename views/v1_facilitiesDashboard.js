@@ -1,10 +1,10 @@
 /* =================================================
 FILE: views/v1_facilitiesDashboard.js
-UPDATED: 2026-05-29 04:20:00 AM
+UPDATED: 2026-05-29 06:15:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
-Always keep this header at the top of current files and new files.
+Always keep the header at the top of current files and new files.
 ================================================= */
 import { supabase } from '../js/supabaseClient.js';
 import { renderImageManagerSection } from '../js/imageManager.js';
@@ -83,11 +83,17 @@ export async function renderFacilities() {
     issueFilter.onchange = loadFacilities;
 
     await loadFacilities();
-}
-/* Add this at the end of v1_facilitiesDashboard.js after loadFacilities() */
 
-supabase
-  .from('FACILITY_PROJECT_ISSUES')
-  .on('INSERT', payload => loadFacilities())
-  .on('UPDATE', payload => loadFacilities())
-  .subscribe();
+    // --- Supabase v2 real-time subscription ---
+    const dashboardChannel = supabase
+      .channel('public:facility_project_issues')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'FACILITY_PROJECT_ISSUES' },
+        (payload) => {
+          console.log('Realtime update:', payload);
+          loadFacilities();
+        }
+      )
+      .subscribe();
+}
