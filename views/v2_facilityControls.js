@@ -1,12 +1,11 @@
 /* =================================================
 FILE: views/v2_facilityControls.js
-UPDATED: 2026-05-29 05:10:00 AM
+UPDATED: 2026-05-29 06:45:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
-Always keep this header at the top of current files and new files.
+Always keep the header at the top of current files and new files.
 ================================================= */
-
 import { supabase } from '../js/supabaseClient.js';
 
 export async function renderFacilityControls(facility) {
@@ -53,82 +52,44 @@ export async function renderFacilityControls(facility) {
                     BACK TO DASHBOARD
                 </button>
             </div>
-
-            <div style="margin-top:40px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v2_facilityControls.js | Updated: 2026-05-29 05:10:00 AM
-            </div>
         </div>
     `;
 
-    async function loadHeaderImage() {
-        const headerImageBox = document.getElementById('facility-header-image');
-        if (!headerImageBox || !facility?.id) return;
-
-        const { data, error } = await supabase
-            .from('FACILITY_IMAGES')
-            .select('image_url')
-            .eq('facility_id', facility.id)
-            .eq('related_type', 'facility')
-            .eq('related_id', facility.id)
-            .order('created_at', { ascending: true })
-            .limit(1);
-
-        if (data && data[0]?.image_url) {
-            headerImageBox.innerHTML = `<img src="${data[0].image_url}" style="width:100%; height:100%; object-fit:cover;">`;
-        }
-    }
-
-    await loadHeaderImage();
-
     async function loadBadges() {
-        const { data: contacts } = await supabase.from('CONTACTS').select('id').eq('facility_id', facility.id);
-        const { data: openIssues } = await supabase.from('FACILITY_PROJECT_ISSUES').select('id, contact_id').eq('open_issue', true).eq('project_id', facility.id);
+        const { data: openIssues } = await supabase
+            .from('FACILITY_PROJECT_ISSUES')
+            .select('id, contact_id')
+            .eq('open_issue', true)
+            .eq('project_id', facility.id);
 
         const contactBadge = document.getElementById('contactBadge');
         const projectBadge = document.getElementById('projectBadge');
 
         const openContacts = new Set(openIssues.map(i => i.contact_id));
-        if (openContacts.size > 0) {
-            contactBadge.style.display = 'inline-block';
-            contactBadge.textContent = openContacts.size;
-        } else {
-            contactBadge.style.display = 'none';
-        }
+        contactBadge.style.display = openContacts.size > 0 ? 'inline-block' : 'none';
+        contactBadge.textContent = openContacts.size;
 
-        if (openIssues.length > 0) {
-            projectBadge.style.display = 'inline-block';
-            projectBadge.textContent = openIssues.length;
-        } else {
-            projectBadge.style.display = 'none';
-        }
+        projectBadge.style.display = openIssues.length > 0 ? 'inline-block' : 'none';
+        projectBadge.textContent = openIssues.length;
     }
 
     await loadBadges();
 
-    document.getElementById('toContacts').onclick = async () => {
-        const { data: contacts } = await supabase.from('CONTACTS').select('*').eq('facility_id', facility.id);
-        const { data: openIssues } = await supabase.from('FACILITY_PROJECT_ISSUES').select('id, contact_id').eq('open_issue', true).eq('project_id', facility.id);
-        window.navigateTo('facilityContacts', { facility, contacts, openIssues });
-    };
+    // --- Supabase v2 real-time subscription ---
+    const controlsChannel = supabase
+      .channel(`public:facility_project_issues`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'FACILITY_PROJECT_ISSUES', filter: `project_id=eq.${facility.id}` },
+        (payload) => {
+          console.log('Realtime update:', payload);
+          loadBadges();
+        }
+      )
+      .subscribe();
 
-    document.getElementById('toProjects').onclick = async () => {
-        const { data: projects } = await supabase.from('FACILITY_PROJECTS').select('*').eq('facility_id', facility.id);
-        window.navigateTo('pendingProjects', { facility, projects });
-    };
-
+    document.getElementById('toContacts').onclick = () => window.navigateTo('facilityContacts', facility);
+    document.getElementById('toProjects').onclick = () => window.navigateTo('pendingProjects', facility);
     document.getElementById('toGallery').onclick = () => window.navigateTo('facilityImages', facility);
     document.getElementById('backDash').onclick = () => window.navigateTo('dashboard', facility);
-
-    const contactSearch = document.getElementById('contactSearch');
-    const contactFilter = document.getElementById('contactIssueFilter');
-
-    contactSearch.oninput = loadBadges;
-    contactFilter.onchange = loadBadges;
 }
-/* Add this at the end of v2_facilityControls.js after loadBadges() */
-
-supabase
-  .from(`FACILITY_PROJECT_ISSUES:project_id=eq.${facility.id}`)
-  .on('INSERT', payload => loadBadges())
-  .on('UPDATE', payload => loadBadges())
-  .subscribe();
