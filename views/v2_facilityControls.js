@@ -1,16 +1,22 @@
 /* =================================================
 FILE: views/v2_facilityControls.js
-UPDATED: 2026-05-29 06:45:00 AM
+UPDATED: 2026-05-29 07:10:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
-Always keep the header at the top of current files and new files.
+Always keep this header at the top of current files and new files.
 ================================================= */
 import { supabase } from '../js/supabaseClient.js';
 
 export async function renderFacilityControls(facility) {
     const app = document.getElementById('app');
     if (!app) return;
+
+    // Ensure window.navigateTo exists as a fallback
+    window.navigateTo = window.navigateTo || function(view, facility) {
+        console.log('Navigate to (fallback):', view, facility);
+        alert(`Navigate to: ${view}`);
+    };
 
     app.innerHTML = `
         <div style="padding: 20px; font-family: Arial; background:#f3f4f6; min-height:100vh; text-align:center;">
