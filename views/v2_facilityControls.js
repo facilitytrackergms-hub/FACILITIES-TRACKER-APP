@@ -125,3 +125,10 @@ export async function renderFacilityControls(facility) {
     contactSearch.oninput = loadBadges;
     contactFilter.onchange = loadBadges;
 }
+/* Add this at the end of v2_facilityControls.js after loadBadges() */
+
+supabase
+  .from(`FACILITY_PROJECT_ISSUES:project_id=eq.${facility.id}`)
+  .on('INSERT', payload => loadBadges())
+  .on('UPDATE', payload => loadBadges())
+  .subscribe();
