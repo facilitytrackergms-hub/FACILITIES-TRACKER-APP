@@ -1,6 +1,7 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
-UPDATED: 2026-05-28 12:30:00 PM
+PURPOSE: Render Facility Contacts and Contact Detail View with Unified Payload Routing
+UPDATED: 2026-05-28 08:45:00 PM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -10,9 +11,18 @@ Always keep this header at the top of current files and new files.
 import { supabase } from '../js/supabaseClient.js';
 import { renderImageManagerSection } from '../js/imageManager.js';
 
-export async function renderContacts(facility) {
+export async function renderContacts(data) {
     const app = document.getElementById('app');
     if (!app) return;
+
+    // Unpack unified payload container or fallback
+    const facility = data?.facility ? data.facility : data;
+    const initialContact = data?.contact ? data.contact : null;
+
+    // Handle deep linking to details immediately if a contact is pinned in the navigation context
+    if (initialContact) {
+        return openContactDetail(initialContact, facility);
+    }
 
     app.innerHTML = `
         <div style="padding:20px; font-family:Arial; min-height:100vh; text-align:center; background:#f3f4f6;">
@@ -24,23 +34,24 @@ export async function renderContacts(facility) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-28 12:30:00 PM
+                File: v3_FacilityContacts.js | Updated: 2026-05-28 08:45:00 PM
             </div>
         </div>
     `;
 
     const contactsGrid = document.getElementById('contactsGrid');
 
-    // Fetch contacts and optionally their open issues count
+    // Fetch contacts and open issues count
     const { data: contacts, error: contactsError } = await supabase
         .from('CONTACTS')
         .select('*')
-        .eq('facility_id', facility.id);
+        .eq('facility_id', facility?.id);
 
     const { data: openIssues, error: issuesError } = await supabase
         .from('FACILITY_PROJECT_ISSUES')
         .select('id, contact_id')
-        .eq('open_issue', true);
+        .eq('open_issue', true)
+        .eq('project_id', facility?.id);
 
     const issuesCountMap = {};
     if (openIssues) {
@@ -96,16 +107,18 @@ async function openContactDetail(contact, facility) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-28 12:30:00 PM
+                File: v3_FacilityContacts.js | Updated: 2026-05-28 08:45:00 PM
             </div>
         </div>
     `;
 
     const imageMount = document.getElementById('contactImageManager');
-    renderImageManagerSection(imageMount, 'contact', contact.id, { title: 'Contact Image' });
+    if (imageMount) {
+        renderImageManagerSection(imageMount, 'contact', contact.id, { title: 'Contact Image', facility });
+    }
 
     document.getElementById('backBtn').onclick = () => {
-        window.navigateTo('facilityContacts', facility);
+        window.navigateTo('facilityContacts', { facility });
     };
 
     document.getElementById('addIssueBtn').onclick = () => {
