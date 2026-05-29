@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v2_facilityControls.js
-UPDATED: 2026-05-29 08:45:00 AM
+UPDATED: 2026-05-29 07:15:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -31,10 +31,10 @@ export async function renderFacilityControls(facility) {
     const app = document.getElementById('app');
     if (!app) return;
 
-    // Ensure window.navigateTo exists
+    // Ensure window.navigateTo exists as a fallback
     window.navigateTo = window.navigateTo || function(view, facility) {
         console.log('Navigate to (fallback):', view, facility);
-        alert(`Navigate to: ${view}`);
+        alert(`Maps to: ${view}`);
     };
 
     app.innerHTML = `
@@ -100,24 +100,18 @@ export async function renderFacilityControls(facility) {
 
     await loadBadges();
 
-    // --- Proper Supabase channel handling ---
-    const existingChannel = supabase.getChannels().find(c => c.topic === `public:facility_project_issues`);
-    if (existingChannel) {
-        supabase.removeChannel(existingChannel);
-        await new Promise(resolve => setTimeout(resolve, 100)); // small delay to ensure removal
-    }
-
+    // --- Supabase v2 real-time subscription ---
     const controlsChannel = supabase
-        .channel(`public:facility_project_issues`)
-        .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'FACILITY_PROJECT_ISSUES', filter: `project_id=eq.${facility.id}` },
-            (payload) => {
-                console.log('Realtime update:', payload);
-                loadBadges();
-            }
-        )
-        .subscribe();
+      .channel(`public:facility_project_issues`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'FACILITY_PROJECT_ISSUES', filter: `project_id=eq.${facility.id}` },
+        (payload) => {
+          console.log('Realtime update:', payload);
+          loadBadges();
+        }
+      )
+      .subscribe();
 
     document.getElementById('toContacts').onclick = () => window.navigateTo('facilityContacts', facility);
     document.getElementById('toProjects').onclick = () => window.navigateTo('pendingProjects', facility);
@@ -126,4 +120,4 @@ export async function renderFacilityControls(facility) {
 }
 
 // --- VER TAG ---
-console.log("Updated: 2026-05-29 08:45 AM • v2_facilityControls.js");
+console.log("Updated: 2026-05-29 07:15 AM • v2_facilityControls.js");
