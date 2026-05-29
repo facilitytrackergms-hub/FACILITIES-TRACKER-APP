@@ -1,7 +1,7 @@
 /* =================================================
 FILE: js/main.js
 PURPOSE: Router for View 1, 2, 3, 4, 5, and 6
-UPDATED: 2026-05-28 10:45:00 PM
+UPDATED: 2026-05-29 09:05:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -27,6 +27,7 @@ GITHUB PUSH RULE:
 9. If GitHub blocks the write action, explain clearly that nothing was pushed.
 ================================================= */
 
+import { supabase } from './supabaseClient.js'; // Ensure import is present
 import { renderFacilities } from '../views/v1_facilitiesDashboard.js';
 import { renderFacilityControls } from '../views/v2_facilityControls.js';
 import { renderContacts as renderFacilityContacts } from '../views/v3_FacilityContacts.js';
@@ -34,6 +35,22 @@ import { renderPendingProjects } from '../views/v4_pendingProjects.js';
 import { renderFacilityIssues } from '../views/v5_FacilityIssues.js';
 import { renderFacilityImages } from '../views/v6_FacilityImages.js';
 
+// Global persistent Supabase channel for facility project issues
+window.facilityIssuesChannel = supabase
+  .channel('public:facility_project_issues')
+  .on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'FACILITY_PROJECT_ISSUES' },
+    (payload) => {
+        // Call refresh function if defined
+        if (window.refreshFacilityBadges) {
+            window.refreshFacilityBadges(payload.new.project_id);
+        }
+    }
+  )
+  .subscribe();
+
+// Navigation function
 window.navigateTo = (view, data = null) => {
     const app = document.getElementById('app');
     if (!app) {
@@ -41,11 +58,10 @@ window.navigateTo = (view, data = null) => {
         return;
     }
     
-    // Clear the screen for the next view
     app.innerHTML = '';
     app.style.backgroundColor = ''; 
 
-    console.log(`Navigating to: ${view}`, data); // Debugging log
+    console.log(`Navigating to: ${view}`, data);
 
     if (view === 'dashboard') {
         renderFacilities();
@@ -71,7 +87,10 @@ window.navigateTo = (view, data = null) => {
     }
 };
 
-// Initial Start
+// Initial start
 document.addEventListener('DOMContentLoaded', () => {
     renderFacilities();
 });
+
+// --- VER TAG ---
+console.log("Updated: 2026-05-29 09:05 AM • main.js");
