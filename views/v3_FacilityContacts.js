@@ -256,28 +256,40 @@ export async function renderContacts(data) {
         document.getElementById('manualContactModal').style.display = 'none';
         await loadContactsGridData();
     };
+/* =================================================
+FILE: views/v3_FacilityContacts.js
+UPDATED: 2026-05-29 06:15:00 PM
+================================================= */
+
+// ... (keep the rest of your file exactly as it is until the backBtn section)
+
 const backBtn = document.getElementById('backBtn');
 if (backBtn) {
-    console.log("Button found in DOM"); // Check F12 for this
     backBtn.onclick = (e) => {
         e.preventDefault();
-        alert("Button Clicked!"); // If this pops up, the code is reaching the button
         
+        // 1. Try to get the ID from various possible data locations
         const facilityId = facility?.id || facility?.facility_id;
         
         if (facilityId) {
+            console.log("Returning to Facility Controls for ID:", facilityId);
             window.location.hash = `#facilityControls?id=${facilityId}`;
+            
+            // Trigger the router in main.js
+            window.dispatchEvent(new CustomEvent('navigate', { 
+                detail: { 
+                    target: 'facilityControls', 
+                    data: facility // This must contain the facility info for V2 to work
+                } 
+            }));
         } else {
+            // 2. EMERGENCY FALLBACK: If we don't know which facility we're in, 
+            // go to the main list (View 1) instead of doing nothing.
+            console.warn("Facility ID missing. Forcing return to main dashboard.");
             window.location.hash = `#dashboard`;
+            window.dispatchEvent(new CustomEvent('navigate', { 
+                detail: { target: 'dashboard', data: {} } 
+            }));
         }
-        
-        window.dispatchEvent(new CustomEvent('navigate', { 
-            detail: { target: 'facilityControls', data: facility } 
-        }));
     };
-} else {
-    console.log("Button NOT found in DOM"); // Check F12 for this
-}   
-
-    await loadContactsGridData();
 }
