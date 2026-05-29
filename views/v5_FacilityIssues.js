@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 02:15:00 PM
+UPDATED: 2026-05-29 03:05:00 PM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -8,11 +8,14 @@ Always keep the header at the top of current files and new files.
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
-import { renderImageManagerSection } from '../js/imageManager.js';
-import { v4 as uuidv4 } from 'https://jspm.dev/uuid'; // For generating temporary IDs
+import { renderImageManagerSection, uploadQueuedImages } from '../js/imageManager.js';
+import { v4 as uuidv4 } from 'https://jspm.dev/uuid'; // For temporary IDs
 
 export async function renderFacilityIssues(facility, contact = null) {
     const app = document.getElementById('app');
+    
+    // In-memory queue for images uploaded before saving
+    const tempIssueImageQueue = {};
 
     app.innerHTML = `
         <div style="padding: 20px; font-family: Arial; background: #f3f4f6; min-height: 100vh; text-align: center;">
@@ -22,7 +25,6 @@ export async function renderFacilityIssues(facility, contact = null) {
             <div style="display: flex; flex-direction: column; gap: 15px; max-width: 400px; margin: 0 auto;">
                 <button id="createNewIssueBtn" style="padding: 15px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">+ REPORT NEW ISSUE</button>
                 <button id="backToProjects" style="padding: 12px; background: #00264d; color: white; border: none; border-radius: 8px; cursor: pointer;">BACK TO PROJECTS</button>
-                
                 <div id="issuesList" style="margin-top: 20px; display: flex; flex-direction: column; gap: 12px; text-align: left;">
                     <div style="text-align: center; color: #94a3b8; font-style: italic;">Loading issues...</div>
                 </div>
@@ -31,68 +33,54 @@ export async function renderFacilityIssues(facility, contact = null) {
             <div id="issueModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; padding: 20px;">
                 <div style="background: white; padding: 20px; border-radius: 12px; width: 100%; max-width: 450px; text-align: left; max-height: 90vh; overflow-y: auto;">
                     <h3 id="modalTitle" style="margin-top: 0; color: #00264d; border-bottom: 2px solid #f5c400; padding-bottom: 10px;">Report Issue</h3>
-                    
                     <input type="hidden" id="issueId">
-                    
                     <div id="issue-form-fields">
-                        <label style="display: block; font-size: 12px; font-weight: bold; color: #666; margin-top: 15px;">ISSUE DESCRIPTION</label>
-                        <input type="text" id="issueInput" style="width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;" placeholder="What is the problem?">
-
-                        <label style="display: block; font-size: 12px; font-weight: bold; color: #666; margin-top: 15px;">TOOL REQUIRED</label>
-                        <input type="text" id="toolInput" style="width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;" placeholder="e.g. Ladder, Drill">
-
-                        <label style="display: block; font-size: 12px; font-weight: bold; color: #666; margin-top: 15px;">INITIATED BY</label>
-                        <input type="text" id="initiatedByInput" style="width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;" placeholder="Your Name">
-
-                        <label style="display: block; font-size: 12px; font-weight: bold; color: #666; margin-top: 15px;">NOTES</label>
-                        <textarea id="notesInput" style="width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; min-height: 80px;" placeholder="Additional context..."></textarea>
+                        <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">ISSUE DESCRIPTION</label>
+                        <input type="text" id="issueInput" style="width:100%; padding:12px; margin-top:5px; border:1px solid #ccc; border-radius:6px;" placeholder="What is the problem?">
+                        <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">TOOL REQUIRED</label>
+                        <input type="text" id="toolInput" style="width:100%; padding:12px; margin-top:5px; border:1px solid #ccc; border-radius:6px;" placeholder="e.g. Ladder, Drill">
+                        <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">INITIATED BY</label>
+                        <input type="text" id="initiatedByInput" style="width:100%; padding:12px; margin-top:5px; border:1px solid #ccc; border-radius:6px;" placeholder="Your Name">
+                        <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">NOTES</label>
+                        <textarea id="notesInput" style="width:100%; padding:12px; margin-top:5px; border:1px solid #ccc; border-radius:6px; min-height:80px;" placeholder="Additional context..."></textarea>
                     </div>
 
-                    <div id="issue-image-section" style="display: none; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
-                        <label style="display: block; font-size: 12px; font-weight: bold; color: #666; margin-bottom: 10px;">ISSUE PHOTOS</label>
+                    <div id="issue-image-section" style="display:none; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+                        <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-bottom:10px;">ISSUE PHOTOS</label>
                         <div id="issue-image-container"></div>
                     </div>
 
-                    <div style="display: flex; gap: 10px; margin-top: 25px;">
-                        <button id="saveIssueBtn" style="flex: 1; padding: 15px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">SAVE ISSUE</button>
-                        <button id="closeIssueModal" style="flex: 1; padding: 15px; background: #eee; color: #333; border: none; border-radius: 8px; cursor: pointer;">CLOSE</button>
+                    <div style="display:flex; gap:10px; margin-top:25px;">
+                        <button id="saveIssueBtn" style="flex:1; padding:15px; background:#28a745; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">SAVE ISSUE</button>
+                        <button id="closeIssueModal" style="flex:1; padding:15px; background:#eee; color:#333; border:none; border-radius:8px; cursor:pointer;">CLOSE</button>
                     </div>
                 </div>
             </div>
-
-            <div style="margin-top: 40px; font-size: 10px; color: #94a3b8; border-top: 1px solid #e5e7eb; padding-top: 10px;">File: v5_FacilityIssues.js | Updated: 2026-05-29 02:15:00 PM</div>
         </div>
     `;
 
     const loadIssues = async () => {
-        const { data, error } = await supabase
-            .from('FACILITY_ISSUES')
+        const { data, error } = await supabase.from('FACILITY_ISSUES')
             .select('*')
             .eq('facility_id', facility.id)
             .order('created_at', { ascending: false });
 
-        if (error) { console.error(error); return; }
-
         const list = document.getElementById('issuesList');
-        if (data && data.length > 0) {
-            list.innerHTML = data.map(item => `
-                <div class="issue-card" style="background: white; padding: 15px; border-radius: 10px; border-left: 5px solid ${item.open_issue ? '#dc3545' : '#28a745'}; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;" onclick="window.editIssue(${JSON.stringify(item).replace(/"/g, '&quot;')})">
-                    <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <strong style="color: #00264d;">${item.issue}</strong>
-                        <span style="font-size: 10px; color: #94a3b8;">${new Date(item.created_at).toLocaleDateString()}</span>
-                    </div>
-                    <div style="font-size: 13px; color: #64748b; margin-top: 5px;">Initiated by: ${item.initiated_by}</div>
-                </div>
-            `).join('');
-        } else {
-            list.innerHTML = '<div style="text-align: center; color: #94a3b8; font-style: italic;">No issues reported yet.</div>';
-        }
+        if (error) return console.error(error);
+
+        list.innerHTML = data && data.length ? data.map(item => `
+            <div class="issue-card" style="background:white; padding:15px; border-radius:10px; border-left:5px solid ${item.open_issue ? '#dc3545':'#28a745'}; cursor:pointer;"
+                onclick="window.editIssue(${JSON.stringify(item).replace(/"/g,'&quot;')})">
+                <strong style="color:#00264d;">${item.issue}</strong>
+                <span style="font-size:10px; color:#94a3b8;">${new Date(item.created_at).toLocaleDateString()}</span>
+            </div>
+        `).join('') : '<div style="text-align:center; color:#94a3b8; font-style:italic;">No issues reported yet.</div>';
     };
 
     window.editIssue = (item) => {
         const imageSection = document.getElementById('issue-image-section');
         const imageContainer = document.getElementById('issue-image-container');
-        
+
         document.getElementById('issueId').value = item.id;
         document.getElementById('issueInput').value = item.issue;
         document.getElementById('toolInput').value = item.tool_required;
@@ -100,20 +88,19 @@ export async function renderFacilityIssues(facility, contact = null) {
         document.getElementById('notesInput').value = item.notes;
         document.getElementById('modalTitle').innerText = "Edit Issue";
         document.getElementById('saveIssueBtn').innerText = "UPDATE INFO";
-        
+
         imageSection.style.display = 'block';
         imageContainer.innerHTML = '';
-        
-        renderImageManagerSection(imageContainer, 'issue', item.id, {
-            facility,
-            title: 'Issue Photos'
-        });
+
+        renderImageManagerSection(imageContainer, 'issue', item.id, { facility, title:'Issue Photos', tempQueue: tempIssueImageQueue });
 
         document.getElementById('issueModal').style.display = 'flex';
     };
 
     document.getElementById('createNewIssueBtn').onclick = () => {
-        const tempId = uuidv4(); // Temporary ID for image manager
+        const tempId = uuidv4();
+        tempIssueImageQueue[tempId] = [];
+
         document.getElementById('issueId').value = tempId;
         document.getElementById('issueInput').value = '';
         document.getElementById('toolInput').value = '';
@@ -127,17 +114,13 @@ export async function renderFacilityIssues(facility, contact = null) {
         imageSection.style.display = 'block';
         imageContainer.innerHTML = '';
 
-        renderImageManagerSection(imageContainer, 'issue', tempId, {
-            facility,
-            title: 'Issue Photos'
-        });
+        renderImageManagerSection(imageContainer, 'issue', tempId, { facility, title:'Issue Photos', tempQueue: tempIssueImageQueue });
 
         document.getElementById('issueModal').style.display = 'flex';
     };
 
     document.getElementById('saveIssueBtn').onclick = async () => {
         const id = document.getElementById('issueId').value;
-        const saveBtn = document.getElementById('saveIssueBtn');
         const payload = {
             issue: document.getElementById('issueInput').value,
             tool_required: document.getElementById('toolInput').value,
@@ -147,36 +130,32 @@ export async function renderFacilityIssues(facility, contact = null) {
             open_issue: true
         };
 
-        if (!payload.issue) {
-            alert("Please describe the issue.");
-            return;
-        }
+        if (!payload.issue) return alert("Please describe the issue.");
 
         let result;
-        if (id.length === 36) { // Temporary UUID
+        const isTemp = id.length === 36; // temporary UUID
+        if (isTemp) {
             result = await supabase.from('FACILITY_ISSUES').insert([payload]).select();
         } else {
             result = await supabase.from('FACILITY_ISSUES').update(payload).eq('id', id).select();
         }
 
-        if (result.error) {
-            console.error("Error saving issue:", result.error);
-            alert("Error saving issue");
-        } else {
-            const savedItem = result.data[0];
-            if (savedItem) {
-                document.getElementById('issueId').value = savedItem.id;
-                saveBtn.innerText = "UPDATE INFO";
-                const imageContainer = document.getElementById('issue-image-container');
-                imageContainer.innerHTML = '';
-                renderImageManagerSection(imageContainer, 'issue', savedItem.id, {
-                    facility,
-                    title: 'Issue Photos'
-                });
-            } else {
-                document.getElementById('issueModal').style.display = 'none';
-                loadIssues();
+        if (result.error) return alert("Error saving issue");
+
+        const savedItem = result.data[0];
+        if (savedItem) {
+            document.getElementById('issueId').value = savedItem.id;
+            document.getElementById('saveIssueBtn').innerText = "UPDATE INFO";
+
+            // Flush queued images for temporary issues
+            if (isTemp && tempIssueImageQueue[id] && tempIssueImageQueue[id].length > 0) {
+                await uploadQueuedImages(savedItem.id, tempIssueImageQueue[id]);
+                delete tempIssueImageQueue[id];
             }
+
+            const imageContainer = document.getElementById('issue-image-container');
+            imageContainer.innerHTML = '';
+            renderImageManagerSection(imageContainer, 'issue', savedItem.id, { facility, title:'Issue Photos' });
         }
     };
 
