@@ -1,7 +1,7 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
-PURPOSE: Render Facility Contacts and Contact Detail View with clickable links, problem tickets, and navigation fixes
-UPDATED: 2026-05-29 03:09:00 PM
+PURPOSE: Render Facility Contacts and Contact Detail View
+UPDATED: 2026-05-29 05:15:00 PM
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
@@ -61,37 +61,33 @@ export async function openContactDetail(contact, facility) {
             detail: { target: 'facilityIssues', data: issueData } 
         }));
     };
-// Replace the existing setTimeout block with this:
-setTimeout(async () => {
-    const managerContainer = document.getElementById('contactImageManagerContainer');
-    
-    // 1. Check if the container actually exists in the DOM now
-    if (managerContainer) {
-        if (typeof renderImageManagerSection === 'function') {
-            // Pass the reference directly to ensure the manager has it
+
+    // Increased timeout to 50ms and added safety check to fix "Not Found" error
+    setTimeout(async () => {
+        const managerContainer = document.getElementById('contactImageManagerContainer');
+        
+        if (managerContainer && typeof renderImageManagerSection === 'function') {
             renderImageManagerSection('contact', contact.id, managerContainer);
         }
-    } else {
-        console.error("Critical: contactImageManagerContainer still not found in DOM.");
-    }
 
-    // 2. Handle Avatar Logic
-    const { data: images } = await supabase
-        .from('FACILITY_IMAGES')
-        .select('*')
-        .eq('related_type', 'contact')
-        .eq('related_id', contact.id);
+        const { data: images } = await supabase
+            .from('FACILITY_IMAGES')
+            .select('*')
+            .eq('related_type', 'contact')
+            .eq('related_id', contact.id);
 
-    const avatarContainer = document.getElementById('detailAvatarContainer');
-    if (avatarContainer) {
-        if (images && images.length > 0) {
-            const latestImg = images.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-            avatarContainer.innerHTML = `<img src="${latestImg.image_url}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);">`;
-        } else {
-            avatarContainer.innerHTML = `<div style="width:100px; height:100px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; margin:0 auto; border:3px solid #f5c400;">${(contact.Name || 'U').charAt(0).toUpperCase()}</div>`;
+        const avatarContainer = document.getElementById('detailAvatarContainer');
+        if (avatarContainer) {
+            if (images && images.length > 0) {
+                const latestImg = images.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+                avatarContainer.innerHTML = `<img src="${latestImg.image_url}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);">`;
+            } else {
+                avatarContainer.innerHTML = `<div style="width:100px; height:100px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; margin:0 auto; border:3px solid #f5c400;">${(contact.Name || 'U').charAt(0).toUpperCase()}</div>`;
+            }
         }
-    }
-}, 50); // Increased to 50ms to allow DOM paint
+    }, 50); 
+}
+
 export async function renderContacts(data) {
     const app = document.getElementById('app');
     if (!app) return;
@@ -147,7 +143,7 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 03:09:00 PM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 05:15:00 PM
             </div>
         </div>
     `;
@@ -278,7 +274,6 @@ export async function renderContacts(data) {
         await loadContactsGridData();
     };
 
-    // Explicitly fallback targeting facilityControls structure view panel
     if (document.getElementById('backBtn')) {
         document.getElementById('backBtn').onclick = () => {
             window.location.hash = `#facilityControls?id=${facility.id}`;
