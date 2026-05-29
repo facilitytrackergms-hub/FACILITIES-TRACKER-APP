@@ -1,10 +1,6 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 06:15:00 PM
-
-STRICT HEADER RULE:
-Do not ever remove or change this header section.
-Always keep this header at the top of current files and new files.
+UPDATED: 2026-05-29
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
@@ -114,9 +110,6 @@ export async function renderFacilityIssues(data) {
                 </div>
             </div>
             
-            <div style="margin-top:40px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v5_FacilityIssues.js | Updated: 2026-05-29 06:15:00 PM
-            </div>
         </div>
     `;
 
