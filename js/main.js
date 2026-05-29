@@ -1,7 +1,7 @@
 /* =================================================
 FILE: js/main.js
 PURPOSE: Router for View 1, 2, 3, 4, 5, and 6
-UPDATED: 2026-05-29 06:40:00 PM
+UPDATED: 2026-05-29 06:05:00 PM
 ================================================= */
 
 import { renderFacilities } from '../views/v1_facilitiesDashboard.js';
@@ -16,6 +16,8 @@ window.navigateTo = (view, data = null) => {
     if (!app) return;
     
     app.innerHTML = '';
+    app.style.backgroundColor = ''; 
+
     console.log(`Navigating to: ${view}`, data);
 
     if (view === 'dashboard') {
@@ -24,9 +26,12 @@ window.navigateTo = (view, data = null) => {
     else if (view === 'facilityControls') {
         renderFacilityControls(data);
     } 
-    else if (view === 'facilityContacts') { 
+    else if (view === 'facilityContacts' || view === 'facilityInfo') { 
         renderFacilityContacts(data);
     } 
+    else if (view === 'pendingProjects') {
+        renderPendingProjects(data);
+    }
     else if (view === 'facilityIssues') {
         renderFacilityIssues(data);
     }
@@ -38,10 +43,9 @@ window.navigateTo = (view, data = null) => {
     }
 };
 
-// CRITICAL FIX: The Listener that connects View 3 to this Router
+// THIS IS THE MISSING PIECE: The Event Listener
 window.addEventListener('navigate', (e) => {
     const { target, data } = e.detail;
-    console.log("Router caught navigate event:", target);
     window.navigateTo(target, data);
 });
 
