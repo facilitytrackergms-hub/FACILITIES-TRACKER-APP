@@ -1,7 +1,7 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
 PURPOSE: Render Facility Contacts and Contact Detail View with Unified Payload Routing
-UPDATED: 2026-05-29 06:02:00 AM
+UPDATED: 2026-05-29 06:25:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -25,83 +25,198 @@ export async function renderContacts(data) {
 
     app.innerHTML = `
         <div style="padding:20px; font-family:Arial; min-height:100vh; text-align:center; background:#f3f4f6;">
-            <h1 style="font-size:22px; margin-bottom:20px; color:#111827;">${facility?.Name || 'FACILITY'} CONTACTS</h1>
+            <h1 style="font-size:22px; margin-bottom:5px; color:#00264d; text-transform:uppercase;">${facility?.Name || 'FACILITY'} CONTACTS</h1>
+            <p style="color:#6b7280; margin-bottom:20px;">Manage contacts and personnel profiles</p>
+            
+            <div style="margin-bottom:25px; display:flex; gap:10px; justify-content:center;">
+                <button id="addManualContactBtn" style="padding:14px 20px; border:none; border-radius:8px; background:#28a745; color:white; font-weight:bold; cursor:pointer;">+ ADD NEW CONTACT</button>
+                <button id="backBtn" style="padding:14px 20px; border:none; border-radius:8px; background:#00264d; color:white; cursor:pointer;">BACK TO FACILITY</button>
+            </div>
+
             <div id="contactsGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:15px;"></div>
 
-            <div style="margin-top:30px;">
-                <button id="backBtn" style="padding:12px 18px; border:none; border-radius:8px; background:#6b7280; color:white; cursor:pointer;">Back to Facility</button>
+            <div id="manualContactModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000; justify-content:center; align-items:center; padding:20px;">
+                <div style="background:white; padding:25px; border-radius:12px; width:100%; max-width:420px; text-align:left; max-height:90vh; overflow-y:auto; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
+                    <h3 style="margin-top:0; color:#00264d; border-bottom:2px solid #f5c400; padding-bottom:10px;">New Contact Profile</h3>
+                    
+                    <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">NAME</label>
+                    <input type="text" id="manualContactName" style="width:100%; padding:11px; margin-top:5px; border:1px solid #ccc; border-radius:6px;" placeholder="Full Name">
+                    
+                    <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">ROLE</label>
+                    <input type="text" id="manualContactRole" style="width:100%; padding:11px; margin-top:5px; border:1px solid #ccc; border-radius:6px;" placeholder="e.g. Owner, Tenant, Driver">
+                    
+                    <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">PHONE</label>
+                    <input type="text" id="manualContactPhone" style="width:100%; padding:11px; margin-top:5px; border:1px solid #ccc; border-radius:6px;" placeholder="Phone Number">
+                    
+                    <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">EMAIL</label>
+                    <input type="email" id="manualContactEmail" style="width:100%; padding:11px; margin-top:5px; border:1px solid #ccc; border-radius:6px;" placeholder="Email Address">
+                    
+                    <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">NOTES</label>
+                    <textarea id="manualContactNotes" style="width:100%; padding:11px; margin-top:5px; border:1px solid #ccc; border-radius:6px; min-height:60px;" placeholder="Contextual notes..."></textarea>
+                    
+                    <div id="manualContactImageSection" style="display:none; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+                        <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-bottom:10px;">CONTACT PICTURES / ATTACHMENTS</label>
+                        <div id="manualContactImageContainer"></div>
+                    </div>
+                    
+                    <div style="display:flex; gap:10px; margin-top:25px;">
+                        <button id="manualContactSaveBtn" style="flex:1; padding:13px; background:#28a745; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">SAVE DETAILS</button>
+                        <button id="manualContactCloseBtn" style="flex:1; padding:13px; background:#eee; color:#333; border:none; border-radius:8px; cursor:pointer;">CLOSE</button>
+                    </div>
+                </div>
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 06:02:00 AM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 06:25:00 AM
             </div>
         </div>
     `;
 
     const contactsGrid = document.getElementById('contactsGrid');
 
-    const { data: contacts, error: contactsError } = await supabase
-        .from('CONTACTS')
-        .select('*')
-        .eq('facility_id', facility?.id);
+    const loadContactsGridData = async () => {
+        contactsGrid.innerHTML = '';
+        
+        const { data: contacts, error: contactsError } = await supabase
+            .from('CONTACTS')
+            .select('*')
+            .eq('facility_id', facility?.id);
 
-    const { data: openIssues, error: issuesError } = await supabase
-        .from('FACILITY_PROJECT_ISSUES')
-        .select('id, contact_id')
-        .eq('open_issue', true)
-        .eq('project_id', facility?.id);
+        const { data: openIssues, error: issuesError } = await supabase
+            .from('FACILITY_ISSUES')
+            .select('id, initiated_by')
+            .eq('open_issue', true)
+            .eq('facility_id', facility?.id);
 
-    const issuesCountMap = {};
-    if (openIssues) {
-        openIssues.forEach(issue => {
-            if (issue.contact_id) {
-                issuesCountMap[issue.contact_id] = (issuesCountMap[issue.contact_id] || 0) + 1;
-            }
-        });
-    }
+        const issuesCountMap = {};
+        if (openIssues) {
+            openIssues.forEach(issue => {
+                if (issue.initiated_by) {
+                    const normKey = issue.initiated_by.toLowerCase().trim();
+                    issuesCountMap[normKey] = (issuesCountMap[normKey] || 0) + 1;
+                }
+            });
+        }
 
-    if (contactsError) console.error('Contacts fetch error:', contactsError);
-    if (issuesError) console.error('Issues fetch error:', issuesError);
+        if (contactsError) console.error('Contacts fetch error:', contactsError);
+        if (issuesError) console.error('Issues fetch error:', issuesError);
 
-    if (contacts) {
-        contacts.forEach(contact => {
-            const btn = document.createElement('button');
-            btn.style.padding = '16px';
-            btn.style.borderRadius = '12px';
-            btn.style.background = '#f5c400';
-            btn.style.border = 'none';
-            btn.style.cursor = 'pointer';
-            btn.style.fontWeight = 'bold';
-            btn.style.position = 'relative';
+        if (contacts && contacts.length > 0) {
+            contacts.forEach(contact => {
+                const btn = document.createElement('button');
+                btn.style.padding = '16px';
+                btn.style.borderRadius = '12px';
+                btn.style.background = '#f5c400';
+                btn.style.border = 'none';
+                btn.style.cursor = 'pointer';
+                btn.style.fontWeight = 'bold';
+                btn.style.position = 'relative';
+                
+                const nameDisplay = contact.Name || 'Unnamed';
+                const roleDisplay = contact.Role || '';
+                const normNameKey = nameDisplay.toLowerCase().trim();
+                const pendingCount = issuesCountMap[normNameKey] || 0;
+
+                btn.innerHTML = `
+                    ${nameDisplay}<br>
+                    <span style="font-size:12px; font-weight:normal; color:#1e293b;">${roleDisplay}</span>
+                    ${pendingCount ? `<span style="position:absolute; top:6px; right:6px; background:#dc2626; color:white; font-size:10px; padding:2px 6px; border-radius:8px;">${pendingCount}</span>` : ''}
+                `;
+                btn.onclick = () => openContactDetail(contact, facility);
+                contactsGrid.appendChild(btn);
+            });
+        } else {
+            contactsGrid.innerHTML = `<div style="grid-column:1/-1; color:#94a3b8; font-style:italic; padding:20px;">No contacts found for this facility. Click "+ ADD NEW CONTACT" to create one.</div>`;
+        }
+    };
+
+    // Form Overlay Operations for Manual Adding
+    let activeManualContactId = null;
+
+    document.getElementById('addManualContactBtn').onclick = () => {
+        activeManualContactId = null;
+        document.getElementById('manualContactName').value = '';
+        document.getElementById('manualContactRole').value = '';
+        document.getElementById('manualContactPhone').value = '';
+        document.getElementById('manualContactEmail').value = '';
+        document.getElementById('manualContactNotes').value = '';
+        
+        document.getElementById('manualContactImageSection').style.display = 'none';
+        document.getElementById('manualContactImageContainer').innerHTML = '';
+        
+        document.getElementById('manualContactSaveBtn').innerText = "SAVE DETAILS";
+        document.getElementById('manualContactModal').style.display = 'flex';
+    };
+
+    document.getElementById('manualContactSaveBtn').onclick = async () => {
+        if (activeManualContactId) {
+            document.getElementById('manualContactModal').style.display = 'none';
+            await loadContactsGridData();
+            return;
+        }
+
+        const nameVal = document.getElementById('manualContactName').value.trim();
+        if (!nameVal) {
+            alert("Please enter a name for the contact profile.");
+            return;
+        }
+
+        const payload = {
+            Name: nameVal,
+            Role: document.getElementById('manualContactRole').value.trim(),
+            Phone: document.getElementById('manualContactPhone').value.trim(),
+            Email: document.getElementById('manualContactEmail').value.trim(),
+            Notes: document.getElementById('manualContactNotes').value.trim(),
+            facility_id: facility.id
+        };
+
+        const { data: resultData, error: insertErr } = await supabase
+            .from('CONTACTS')
+            .insert([payload])
+            .select();
+
+        if (insertErr) {
+            console.error(insertErr);
+            alert("Could not insert the contact profile row.");
+            return;
+        }
+
+        const newlyCreated = resultData?.[0];
+        if (newlyCreated) {
+            activeManualContactId = newlyCreated.id;
             
-            // Fixed casing from database payload matching
-            const nameDisplay = contact.Name || contact.name || 'Unnamed';
-            const roleDisplay = contact.Role || contact.role || '';
+            document.getElementById('manualContactImageSection').style.display = 'block';
+            renderImageManagerSection(
+                document.getElementById('manualContactImageContainer'),
+                'contact',
+                activeManualContactId,
+                { title: 'Contact Pictures', facility }
+            );
 
-            btn.innerHTML = `
-                ${nameDisplay}<br>
-                <span style="font-size:12px;">${roleDisplay}</span>
-                ${issuesCountMap[contact.id] ? `<span style="position:absolute; top:6px; right:6px; background:red; color:white; font-size:10px; padding:2px 6px; border-radius:8px;">${issuesCountMap[contact.id]}</span>` : ''}
-            `;
-            btn.onclick = () => openContactDetail(contact, facility);
-            contactsGrid.appendChild(btn);
-        });
-    }
+            document.getElementById('manualContactSaveBtn').innerText = "DONE";
+        }
+    };
+
+    document.getElementById('manualContactCloseBtn').onclick = async () => {
+        document.getElementById('manualContactModal').style.display = 'none';
+        await loadContactsGridData();
+    };
 
     document.getElementById('backBtn').onclick = () => {
         if (window.navigateTo) window.navigateTo('facilityControls', { facility });
     };
+
+    await loadContactsGridData();
 }
 
 async function openContactDetail(contact, facility) {
     const app = document.getElementById('app');
     
-    // Fixed casing from database payload matching
-    const contactName = contact.Name || contact.name || 'Unnamed';
-    const contactRole = contact.Role || contact.role || '';
-    const contactPhone = contact.Phone || contact.phone || '';
-    const contactEmail = contact.Email || contact.email || '';
-    const contactNotes = contact.Notes || contact.notes || 'None';
+    const contactName = contact.Name || 'Unnamed';
+    const contactRole = contact.Role || '';
+    const contactPhone = contact.Phone || '';
+    const contactEmail = contact.Email || '';
+    const contactNotes = contact.Notes || 'None';
 
     app.innerHTML = `
         <div style="padding:20px; font-family:Arial; min-height:100vh; text-align:center; background:#f3f4f6;">
@@ -118,7 +233,7 @@ async function openContactDetail(contact, facility) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 06:02:00 AM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 06:25:00 AM
             </div>
         </div>
     `;
