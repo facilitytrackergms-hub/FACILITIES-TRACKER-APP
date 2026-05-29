@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 01:10:00 AM
+UPDATED: 2026-05-28 08:30:00 PM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -13,10 +13,14 @@ import { renderImageManagerSection } from '../js/imageManager.js';
 export async function renderFacilityIssues(facility, contact = null) {
     const app = document.getElementById('app');
     
+    // Safety check fallbacks to avoid layout breakage
+    const facilityName = facility?.Name || 'Unknown Facility';
+    const facilityId = facility?.id || null;
+    
     app.innerHTML = `
         <div style="padding: 20px; font-family: Arial; background: #f3f4f6; min-height: 100vh; text-align: center;">
             <h1 style="color: #00264d; font-size: 22px; text-transform: uppercase;">Facility Issues</h1>
-            <p style="color: #4b5563; margin-bottom: 25px;">${facility.Name}${contact ? ` | Contact: ${contact.name}` : ''}</p>
+            <p style="color: #4b5563; margin-bottom: 25px;">${facilityName}${contact?.name ? ` | Contact: ${contact.name}` : ''}</p>
 
             <div style="display: flex; flex-direction: column; gap: 15px; max-width: 400px; margin: 0 auto;">
                 <button id="createNewIssueBtn" style="padding: 15px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">+ REPORT NEW ISSUE</button>
@@ -60,16 +64,17 @@ export async function renderFacilityIssues(facility, contact = null) {
             </div>
 
             <div style="margin-top: 40px; font-size: 10px; color: #94a3b8; border-top: 1px solid #e5e7eb; padding-top: 10px;">
-                File: v5_FacilityIssues.js | Updated: 2026-05-29 01:10:00 AM
+                File: v5_FacilityIssues.js | Updated: 2026-05-28 08:30:00 PM
             </div>
         </div>
     `;
 
     const loadIssues = async () => {
+        if (!facilityId) return;
         const { data, error } = await supabase
             .from('FACILITY_PROJECT_ISSUES')
             .select('*')
-            .eq('project_id', facility.id)
+            .eq('project_id', facilityId)
             .order('created_at', { ascending: false });
 
         const list = document.getElementById('issuesList');
@@ -81,7 +86,7 @@ export async function renderFacilityIssues(facility, contact = null) {
                         <strong style="color:#00264d;">${item.description}</strong>
                         <span style="font-size:10px; color:#94a3b8;">${new Date(item.created_at).toLocaleDateString()}</span>
                     </div>
-                    <div style="font-size:13px; color:#64748b;">Initiated by: ${item.initiated_by}</div>
+                    <div style="font-size:13px; color:#64748b;">Initiated by: ${item.initiated_by || 'Unknown'}</div>
                 </div>
             `).join('');
         } else {
@@ -121,7 +126,7 @@ export async function renderFacilityIssues(facility, contact = null) {
     document.getElementById('saveIssueBtn').onclick = async () => {
         const id = document.getElementById('issueId').value;
         const payload = {
-            project_id: facility.id,
+            project_id: facilityId,
             contact_id: contact ? contact.id : null,
             description: document.getElementById('issueInput').value,
             tool_required: document.getElementById('toolInput').value,
@@ -165,7 +170,9 @@ export async function renderFacilityIssues(facility, contact = null) {
     };
 
     document.getElementById('backToProjects').onclick = () => {
-        if (window.navigateTo) window.navigateTo('pendingProjects', facility, contact);
+        if (window.navigateTo) {
+            window.navigateTo('pendingProjects', { facility, contact });
+        }
     };
 
     loadIssues();
