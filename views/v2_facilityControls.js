@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v2_facilityControls.js
-UPDATED: 2026-05-29 07:15:00 AM
+UPDATED: 2026-05-29 08:35:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -81,37 +81,53 @@ export async function renderFacilityControls(facility) {
     `;
 
     async function loadBadges() {
-        const { data: openIssues } = await supabase
+        if (!facility?.id) {
+            console.warn("Cannot load badges: facility.id is undefined");
+            return;
+        }
+
+        const { data: openIssues, error } = await supabase
             .from('FACILITY_PROJECT_ISSUES')
             .select('id, contact_id')
             .eq('open_issue', true)
             .eq('project_id', facility.id);
 
+        if (error) {
+            console.error("Error fetching badges:", error);
+            return;
+        }
+
         const contactBadge = document.getElementById('contactBadge');
         const projectBadge = document.getElementById('projectBadge');
 
-        const openContacts = new Set(openIssues.map(i => i.contact_id));
+        // Added null check for openIssues to prevent .map() crash
+        const safeIssues = openIssues || [];
+        const openContacts = new Set(safeIssues.map(i => i.contact_id));
+        
         contactBadge.style.display = openContacts.size > 0 ? 'inline-block' : 'none';
         contactBadge.textContent = openContacts.size;
 
-        projectBadge.style.display = openIssues.length > 0 ? 'inline-block' : 'none';
-        projectBadge.textContent = openIssues.length;
+        projectBadge.style.display = safeIssues.length > 0 ? 'inline-block' : 'none';
+        projectBadge.textContent = safeIssues.length;
     }
 
     await loadBadges();
 
     // --- Supabase v2 real-time subscription ---
-    const controlsChannel = supabase
-      .channel(`public:facility_project_issues`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'FACILITY_PROJECT_ISSUES', filter: `project_id=eq.${facility.id}` },
-        (payload) => {
-          console.log('Realtime update:', payload);
-          loadBadges();
-        }
-      )
-      .subscribe();
+    // Only subscribe if we have a valid facility ID
+    if (facility?.id) {
+        const controlsChannel = supabase
+          .channel(`public:facility_project_issues_${facility.id}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'FACILITY_PROJECT_ISSUES', filter: `project_id=eq.${facility.id}` },
+            (payload) => {
+              console.log('Realtime update:', payload);
+              loadBadges();
+            }
+          )
+          .subscribe();
+    }
 
     document.getElementById('toContacts').onclick = () => window.navigateTo('facilityContacts', facility);
     document.getElementById('toProjects').onclick = () => window.navigateTo('pendingProjects', facility);
@@ -120,4 +136,4 @@ export async function renderFacilityControls(facility) {
 }
 
 // --- VER TAG ---
-console.log("Updated: 2026-05-29 07:15 AM • v2_facilityControls.js");
+console.log("Updated: 2026-05-29 08:35 AM • v2_facilityControls.js");
