@@ -1,11 +1,65 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
 PURPOSE: Render Facility Contacts and Contact Detail View with avatar on top
-UPDATED: 2026-05-29 02:32:12 PM
+UPDATED: 2026-05-29 02:34:12 PM
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
 import { renderImageManagerSection } from '../js/imageManager.js';
+
+// Pre-declare or scope function cleanly to resolve execution reference errors
+export async function openContactDetail(contact, facility) {
+    const app = document.getElementById('app');
+    if (!app) return;
+
+    app.innerHTML = `
+        <div style="padding:20px; font-family:Arial; min-height:100vh; background:#f3f4f6; text-align:center;">
+            <div style="max-width:500px; margin:0 auto; background:white; border-radius:12px; padding:30px; box-shadow:0 4px 10px rgba(0,0,0,0.05); text-align:left;">
+                
+                <div style="text-align:center; margin-bottom:20px;" id="detailAvatarContainer"></div>
+
+                <h2 style="margin:0 0 5px 0; color:#00264d; text-align:center;">${contact.Name || 'Unnamed Contact'}</h2>
+                <p style="margin:0 0 20px 0; color:#6b7280; text-align:center; font-weight:bold;">${contact.Role || 'No Role Assigned'}</p>
+
+                <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
+
+                <div style="margin-bottom:12px;"><strong>Phone:</strong> ${contact.Phone || 'N/A'}</div>
+                <div style="margin-bottom:12px;"><strong>Email:</strong> ${contact.Email || 'N/A'}</div>
+                <div style="margin-bottom:20px;"><strong>Notes:</strong> ${contact.Notes || 'None'}</div>
+
+                <div id="contactImageManagerContainer" style="margin-top:20px; border-top:1px solid #eee; padding-top:20px;"></div>
+
+                <div style="margin-top:30px; display:flex; gap:10px;">
+                    <button id="closeDetailBtn" style="flex:1; padding:12px; background:#00264d; color:white; border:none; border-radius:8px; cursor:pointer;">CLOSE DETAILS</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Fetch matching image records using standard filter mapping formats
+    const { data: images } = await supabase
+        .from('IMAGES')
+        .select('*')
+        .eq('entity_type', 'contact')
+        .eq('entity_id', contact.id);
+
+    const avatarContainer = document.getElementById('detailAvatarContainer');
+    
+    if (images && images.length > 0) {
+        const latestImg = images.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+        avatarContainer.innerHTML = `<img src="${latestImg.public_url}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);">`;
+    } else {
+        avatarContainer.innerHTML = `<div style="width:100px; height:100px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; margin:0 auto; border:3px solid #f5c400;">${(contact.Name || 'U').charAt(0).toUpperCase()}</div>`;
+    }
+
+    if (typeof renderImageManagerSection === 'function') {
+        renderImageManagerSection('contact', contact.id, document.getElementById('contactImageManagerContainer'));
+    }
+
+    document.getElementById('closeDetailBtn').onclick = () => {
+        renderContacts({ facility });
+    };
+}
 
 export async function renderContacts(data) {
     const app = document.getElementById('app');
@@ -62,7 +116,7 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:32:12 PM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:34:12 PM
             </div>
         </div>
     `;
@@ -195,59 +249,9 @@ export async function renderContacts(data) {
 
     if (document.getElementById('backBtn')) {
         document.getElementById('backBtn').onclick = () => {
-            // Adjust navigation destination string or event to match your main router structure
             window.location.hash = '#dashboard'; 
         };
     }
 
     await loadContactsGridData();
-}
-
-export async function openContactDetail(contact, facility) {
-    const app = document.getElementById('app');
-    if (!app) return;
-
-    app.innerHTML = `
-        <div style="padding:20px; font-family:Arial; min-height:100vh; background:#f3f4f6; text-align:center;">
-            <div style="max-width:500px; margin:0 auto; background:white; border-radius:12px; padding:30px; box-shadow:0 4px 10px rgba(0,0,0,0.05); text-align:left;">
-                
-                <div style="text-align:center; margin-bottom:20px;" id="detailAvatarContainer"></div>
-
-                <h2 style="margin:0 0 5px 0; color:#00264d; text-align:center;">${contact.Name || 'Unnamed Contact'}</h2>
-                <p style="margin:0 0 20px 0; color:#6b7280; text-align:center; font-weight:bold;">${contact.Role || 'No Role Assigned'}</p>
-
-                <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
-
-                <div style="margin-bottom:12px;"><strong>Phone:</strong> ${contact.Phone || 'N/A'}</div>
-                <div style="margin-bottom:12px;"><strong>Email:</strong> ${contact.Email || 'N/A'}</div>
-                <div style="margin-bottom:20px;"><strong>Notes:</strong> ${contact.Notes || 'None'}</div>
-
-                <div id="contactImageManagerContainer" style="margin-top:20px; border-top:1px solid #eee; padding-top:20px;"></div>
-
-                <div style="margin-top:30px; display:flex; gap:10px;">
-                    <button id="closeDetailBtn" style="flex:1; padding:12px; background:#00264d; color:white; border:none; border-radius:8px; cursor:pointer;">CLOSE DETAILS</button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    // Load Avatar
-    const { data: images } = await supabase.from('IMAGES').select('*').eq('entity_type', 'contact').eq('entity_id', contact.id);
-    const avatarContainer = document.getElementById('detailAvatarContainer');
-    
-    if (images && images.length > 0) {
-        const latestImg = images.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-        avatarContainer.innerHTML = `<img src="${latestImg.public_url}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);">`;
-    } else {
-        avatarContainer.innerHTML = `<div style="width:100px; height:100px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; margin:0 auto; border:3px solid #f5c400;">${(contact.Name || 'U').charAt(0).toUpperCase()}</div>`;
-    }
-
-    // Render Image Manager 
-    if (typeof renderImageManagerSection === 'function') {
-        renderImageManagerSection('contact', contact.id, document.getElementById('contactImageManagerContainer'));
-    }
-
-    document.getElementById('closeDetailBtn').onclick = () => {
-        renderContacts({ facility });
-    };
 }
