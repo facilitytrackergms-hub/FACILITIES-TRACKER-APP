@@ -1,11 +1,10 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
 PURPOSE: Render Facility Contacts and Contact Detail View
-UPDATED: 2026-05-29 05:25:00 PM
+UPDATED: 2026-05-29 05:40:00 PM
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
-import { renderImageManagerSection } from '../js/imageManager.js';
 
 export async function openContactDetail(contact, facility) {
     const app = document.getElementById('app');
@@ -34,8 +33,6 @@ export async function openContactDetail(contact, facility) {
                 <div style="margin-bottom:12px;"><strong>Email:</strong> ${emailLink}</div>
                 <div style="margin-bottom:20px;"><strong>Notes:</strong> ${contact.Notes || 'None'}</div>
 
-                <div id="contactImageManagerContainer" style="margin-top:20px; border-top:1px solid #eee; padding-top:20px;"></div>
-
                 <div style="margin-top:30px; display:flex; flex-direction:column; gap:10px;">
                     <button id="addContactIssueBtn" style="padding:14px; background:#28a745; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-size:14px; text-transform:uppercase;">+ Add Issue For This Contact</button>
                     <button id="closeDetailBtn" style="padding:12px; background:#00264d; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">CLOSE DETAILS</button>
@@ -62,15 +59,8 @@ export async function openContactDetail(contact, facility) {
         }));
     };
 
-    // Increased timeout and corrected parameter order to fix "Not Found" error
+    // Load only the avatar image
     setTimeout(async () => {
-        const managerContainer = document.getElementById('contactImageManagerContainer');
-        
-        if (managerContainer && typeof renderImageManagerSection === 'function') {
-            // FIXED: Corrected parameter order (Container, Type, ID, Options)
-            renderImageManagerSection(managerContainer, 'contact', contact.id, { facility: facility });
-        }
-
         const { data: images } = await supabase
             .from('FACILITY_IMAGES')
             .select('*')
@@ -131,11 +121,6 @@ export async function renderContacts(data) {
                     <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">NOTES</label>
                     <textarea id="manualContactNotes" style="width:100%; padding:11px; margin-top:5px; border:1px solid #ccc; border-radius:6px; min-height:60px;" placeholder="Contextual notes..."></textarea>
                     
-                    <div id="manualContactImageSection" style="display:none; margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
-                        <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-bottom:10px;">CONTACT PICTURES / ATTACHMENTS</label>
-                        <div id="manualContactImageContainer"></div>
-                    </div>
-                    
                     <div style="display:flex; gap:10px; margin-top:25px;">
                         <button id="manualContactSaveBtn" style="flex:1; padding:13px; background:#28a745; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">SAVE DETAILS</button>
                         <button id="manualContactCloseBtn" style="flex:1; padding:13px; background:#eee; color:#333; border:none; border-radius:8px; cursor:pointer;">CLOSE</button>
@@ -144,7 +129,7 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 05:25:00 PM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 05:40:00 PM
             </div>
         </div>
     `;
@@ -241,9 +226,6 @@ export async function renderContacts(data) {
         document.getElementById('manualContactPhone').value = '';
         document.getElementById('manualContactEmail').value = '';
         document.getElementById('manualContactNotes').value = '';
-        
-        document.getElementById('manualContactImageSection').style.display = 'none';
-        document.getElementById('manualContactImageContainer').innerHTML = '';
         
         document.getElementById('manualContactSaveBtn').innerText = "SAVE DETAILS";
         document.getElementById('manualContactModal').style.display = 'flex';
