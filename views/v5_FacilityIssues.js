@@ -1,12 +1,17 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 05:15:00 PM
+UPDATED: 2026-05-29 06:55:00 PM
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
 import { renderImageManagerSection } from '../js/imageManager.js';
 
 export async function renderFacilityIssues(facility, contact = null) {
+    if (!facility || !facility.id) {
+        console.error("Facility object is missing or invalid");
+        return;
+    }
+
     const app = document.getElementById('app');
 
     app.innerHTML = `
@@ -52,7 +57,6 @@ export async function renderFacilityIssues(facility, contact = null) {
     `;
 
     const loadIssues = async () => {
-        if (!facility?.id) return;
         const { data, error } = await supabase.from('FACILITY_ISSUES')
             .select('*')
             .eq('facility_id', facility.id)
@@ -61,7 +65,7 @@ export async function renderFacilityIssues(facility, contact = null) {
 
         const list = document.getElementById('issuesList');
         list.innerHTML = data && data.length ? data.map(item => `
-            <div class="issue-card" style="background:white;padding:15px;border-radius:10px;border-left:5px solid ${item.open_issue ? '#dc3545':'#28a745'};cursor:pointer;"
+            <div class="issue-card" style="background:white;padding:15px;border-radius:10px;border-left:5px solid ${item.open_issue ? '#dc2625':'#28a745'};cursor:pointer;"
                 onclick="window.editIssue(${JSON.stringify(item).replace(/"/g,'&quot;')})">
                 <strong style="color:#00264d;">${item.issue}</strong>
                 <span style="font-size:10px;color:#94a3b8;">${new Date(item.created_at).toLocaleDateString()}</span>
@@ -70,9 +74,6 @@ export async function renderFacilityIssues(facility, contact = null) {
     };
 
     window.editIssue = (item) => {
-        const imageSection = document.getElementById('issue-image-section');
-        const imageContainer = document.getElementById('issue-image-container');
-
         document.getElementById('issueId').value = item.id;
         document.getElementById('issueInput').value = item.issue;
         document.getElementById('toolInput').value = item.tool_required;
@@ -81,10 +82,8 @@ export async function renderFacilityIssues(facility, contact = null) {
         document.getElementById('modalTitle').innerText = "Edit Issue";
         document.getElementById('saveIssueBtn').innerText = "UPDATE INFO";
 
-        imageSection.style.display = 'block';
-        imageContainer.innerHTML = '';
-
-        renderImageManagerSection(imageContainer, 'issue', item.id, { facility, title:'Issue Photos' });
+        document.getElementById('issue-image-section').style.display = 'block';
+        renderImageManagerSection(document.getElementById('issue-image-container'), 'issue', item.id, { facility, title:'Issue Photos' });
 
         document.getElementById('issueModal').style.display = 'flex';
     };
@@ -97,10 +96,8 @@ export async function renderFacilityIssues(facility, contact = null) {
         document.getElementById('notesInput').value = '';
         document.getElementById('modalTitle').innerText = "Report Issue";
         document.getElementById('saveIssueBtn').innerText = "SAVE ISSUE";
-
         document.getElementById('issue-image-section').style.display = 'none';
         document.getElementById('issue-image-container').innerHTML = '';
-
         document.getElementById('issueModal').style.display = 'flex';
     };
 
@@ -111,7 +108,7 @@ export async function renderFacilityIssues(facility, contact = null) {
             tool_required: document.getElementById('toolInput').value,
             initiated_by: document.getElementById('initiatedByInput').value,
             notes: document.getElementById('notesInput').value,
-            facility_id: facility.id,
+            facility_id: facility.id, // <-- Ensure facility_id is set
             open_issue: true
         };
 
@@ -132,11 +129,8 @@ export async function renderFacilityIssues(facility, contact = null) {
         if (savedItem) {
             document.getElementById('issueId').value = savedItem.id;
             document.getElementById('saveIssueBtn').innerText = "UPDATE INFO";
-
-            const imageContainer = document.getElementById('issue-image-container');
-            imageContainer.innerHTML = '';
             document.getElementById('issue-image-section').style.display = 'block';
-            renderImageManagerSection(imageContainer, 'issue', savedItem.id, { facility, title:'Issue Photos' });
+            renderImageManagerSection(document.getElementById('issue-image-container'), 'issue', savedItem.id, { facility, title:'Issue Photos' });
         }
     };
 
