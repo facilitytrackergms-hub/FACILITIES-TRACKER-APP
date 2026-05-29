@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 06:55:00 PM
+UPDATED: 2026-05-29 09:45:00 PM
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
@@ -108,7 +108,7 @@ export async function renderFacilityIssues(facility, contact = null) {
             tool_required: document.getElementById('toolInput').value,
             initiated_by: document.getElementById('initiatedByInput').value,
             notes: document.getElementById('notesInput').value,
-            facility_id: facility.id, // <-- Ensure facility_id is set
+            facility_id: facility.id, // Ensure facility_id is set
             open_issue: true
         };
 
