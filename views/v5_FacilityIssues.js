@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 05:55:00 AM
+UPDATED: 2026-05-29 06:15:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -36,6 +36,7 @@ export async function renderFacilityIssues(data) {
                 </div>
             </div>
 
+            <!-- MAIN ISSUE MODAL -->
             <div id="issueModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;justify-content:center;align-items:center;padding:20px;">
                 <div style="background:white;padding:20px;border-radius:12px;width:100%;max-width:450px;text-align:left;max-height:90vh;overflow-y:auto;">
                     <h3 id="modalTitle" style="margin-top:0;color:#00264d;border-bottom:2px solid #f5c400;padding-bottom:10px;">Report Issue</h3>
@@ -67,6 +68,7 @@ export async function renderFacilityIssues(data) {
                 </div>
             </div>
 
+            <!-- CUSTOM DIALOG POPUP MODAL -->
             <div id="customDialogModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;justify-content:center;align-items:center;padding:20px;">
                 <div style="background:white;padding:25px;border-radius:12px;width:100%;max-width:400px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.3);">
                     <div id="customDialogIcon" style="font-size:40px;margin-bottom:15px;">⚠️</div>
@@ -79,8 +81,9 @@ export async function renderFacilityIssues(data) {
                 </div>
             </div>
 
+            <!-- QUICK ADD CONTACT EXTENSION MODAL WITH INLINE IMAGES -->
             <div id="quickContactModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2500;justify-content:center;align-items:center;padding:20px;">
-                <div style="background:white;padding:25px;border-radius:12px;width:100%;max-width:420px;text-align:left;box-shadow:0 4px 15px rgba(0,0,0,0.3);">
+                <div style="background:white;padding:25px;border-radius:12px;width:100%;max-width:420px;text-align:left;box-shadow:0 4px 15px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
                     <h3 style="margin-top:0;color:#00264d;border-bottom:2px solid #f5c400;padding-bottom:10px;">Add Contact Details</h3>
                     
                     <label style="display:block;font-size:12px;font-weight:bold;color:#666;margin-top:15px;">NAME</label>
@@ -98,6 +101,12 @@ export async function renderFacilityIssues(data) {
                     <label style="display:block;font-size:12px;font-weight:bold;color:#666;margin-top:15px;">NOTES</label>
                     <textarea id="quickContactNotes" style="width:100%;padding:10px;margin-top:5px;border:1px solid #ccc;border-radius:6px;min-height:60px;" placeholder="Extra notes..."></textarea>
                     
+                    <!-- DYNAMIC CONTACT IMAGE SECTION -->
+                    <div id="quickContactImageSection" style="display:none;margin-top:20px;border-top:1px solid #eee;padding-top:15px;">
+                        <label style="display:block;font-size:12px;font-weight:bold;color:#666;margin-bottom:10px;">CONTACT PICTURE / IMAGES</label>
+                        <div id="quickContactImageContainer"></div>
+                    </div>
+                    
                     <div style="display:flex;gap:10px;margin-top:25px;">
                         <button id="quickContactSaveBtn" style="flex:1;padding:12px;background:#28a745;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:bold;">SAVE CONTACT</button>
                         <button id="quickContactCancelBtn" style="flex:1;padding:12px;background:#eee;color:#333;border:none;border-radius:8px;cursor:pointer;">SKIP DETAILS</button>
@@ -106,7 +115,7 @@ export async function renderFacilityIssues(data) {
             </div>
             
             <div style="margin-top:40px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v5_FacilityIssues.js | Updated: 2026-05-29 05:55:00 AM
+                File: v5_FacilityIssues.js | Updated: 2026-05-29 06:15:00 AM
             </div>
         </div>
     `;
@@ -154,10 +163,26 @@ export async function renderFacilityIssues(data) {
         document.getElementById('quickContactPhone').value = '';
         document.getElementById('quickContactEmail').value = '';
         document.getElementById('quickContactNotes').value = '';
+        
+        // Hide image section dynamically until contact record generation yields an explicit ID
+        document.getElementById('quickContactImageSection').style.display = 'none';
+        document.getElementById('quickContactImageContainer').innerHTML = '';
+        
+        document.getElementById('quickContactSaveBtn').innerText = "SAVE CONTACT";
+        document.getElementById('quickContactCancelBtn').innerText = "SKIP DETAILS";
         document.getElementById('quickContactModal').style.display = 'flex';
+
+        let activeContactId = null;
 
         return new Promise((resolve) => {
             document.getElementById('quickContactSaveBtn').onclick = async () => {
+                // If contact is already saved, this button functions as 'DONE' to exit
+                if (activeContactId) {
+                    document.getElementById('quickContactModal').style.display = 'none';
+                    resolve(true);
+                    return;
+                }
+
                 const contactPayload = {
                     Name: targetName,
                     Role: document.getElementById('quickContactRole').value.trim(),
@@ -167,17 +192,39 @@ export async function renderFacilityIssues(data) {
                     facility_id: facility.id
                 };
 
-                const { error: insertErr } = await supabase.from('CONTACTS').insert([contactPayload]);
+                const { data: insertData, error: insertErr } = await supabase
+                    .from('CONTACTS')
+                    .insert([contactPayload])
+                    .select();
+
                 if (insertErr) {
                     console.error(insertErr);
                     await showCustomAlert("Sync Error", "Failed to save the additional contact fields.", "❌");
+                    document.getElementById('quickContactModal').style.display = 'none';
+                    resolve(true);
+                    return;
                 }
-                document.getElementById('quickContactModal').style.display = 'none';
-                resolve(true);
+
+                const savedContact = insertData?.[0];
+                if (savedContact) {
+                    activeContactId = savedContact.id;
+                    
+                    // Display image loader section natively inline now that record context exists
+                    document.getElementById('quickContactImageSection').style.display = 'block';
+                    renderImageManagerSection(
+                        document.getElementById('quickContactImageContainer'), 
+                        'contact', 
+                        activeContactId, 
+                        { title: 'Contact Images', facility }
+                    );
+
+                    // Morph button layouts to reflect complete row synchronization status
+                    document.getElementById('quickContactSaveBtn').innerText = "DONE";
+                    document.getElementById('quickContactCancelBtn').style.display = 'none';
+                }
             };
 
             document.getElementById('quickContactCancelBtn').onclick = async () => {
-                // User chose to skip entering full profile data but we still record basic name row matching
                 const basicPayload = { Name: targetName, facility_id: facility.id };
                 await supabase.from('CONTACTS').insert([basicPayload]);
                 document.getElementById('quickContactModal').style.display = 'none';
