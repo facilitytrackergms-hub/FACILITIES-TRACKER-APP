@@ -1,31 +1,28 @@
 /* =================================================
 FILE: views/v4_pendingProjects.js
-UPDATED: 2026-05-29 09:10:00 PM
+UPDATED: 2026-05-29 10:30:00 PM
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
 
 export async function renderPendingProjects(data) {
     const app = document.getElementById('app');
-    
+
     // Unpack facility and contact
     const facility = data?.facility ? data.facility : data;
-    const contact = data?.contact ? data.contact : null;
+    const contact = data?.contact || null;
 
     if (!facility || !facility.id) {
         console.error("Invalid facility passed to renderPendingProjects:", facility);
-        app.innerHTML = '<div style="text-align:center; color:#dc2625;">Invalid facility object.</div>';
+        app.innerHTML = '<div style="padding:20px; color:red; text-align:center;">Invalid facility object.</div>';
         return;
     }
-
-    const facilityName = facility?.Name || 'Unknown Facility';
-    const facilityId = facility?.id;
 
     app.innerHTML = `
         <div style="padding:40px 20px; text-align:center; font-family:Arial; background:#f3f4f6; min-height:100vh;">
             <h1 style="color:#00264d; margin-bottom:10px;">PENDING PROJECTS</h1>
             <p style="color:#64748b; margin-bottom:30px;">
-                Facility: <strong>${facilityName}</strong>
+                Facility: <strong>${facility.Name}</strong>
                 ${contact?.name ? ` | Contact: <strong>${contact.name}</strong>` : ''}
             </p>
 
@@ -44,14 +41,14 @@ export async function renderPendingProjects(data) {
             </div>
             
             <div style="margin-top:40px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v4_pendingProjects.js | Updated: 2026-05-29 09:10:00 PM
+                File: v4_pendingProjects.js | Updated: 2026-05-29 10:30:00 PM
             </div>
         </div>
     `;
 
     const loadPendingItems = async () => {
         const listDiv = document.getElementById('pendingProjectsList');
-        if (!facilityId) {
+        if (!facility.id) {
             listDiv.innerHTML = '<div style="text-align:center; color:#94a3b8;">Missing facility reference.</div>';
             return;
         }
@@ -59,7 +56,7 @@ export async function renderPendingProjects(data) {
         const { data: issues, error } = await supabase
             .from('FACILITY_PROJECT_ISSUES')
             .select('*')
-            .eq('project_id', facilityId)
+            .eq('project_id', facility.id)
             .eq('open_issue', true)
             .order('created_at', { ascending: false });
 
