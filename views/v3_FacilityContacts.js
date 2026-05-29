@@ -1,7 +1,7 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
-PURPOSE: Render Facility Contacts and Contact Detail View with clickable links and new contact issue creation
-UPDATED: 2026-05-29 03:01:16 PM
+PURPOSE: Render Facility Contacts and Contact Detail View with clickable links, problem tickets, and navigation fixes
+UPDATED: 2026-05-29 03:09:00 PM
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
@@ -19,7 +19,6 @@ export async function openContactDetail(contact, facility) {
         ? `<a href="mailto:${contact.Email}" style="color:#00264d; text-decoration:underline; font-weight:bold;">${contact.Email}</a>` 
         : 'N/A';
 
-    // 1. Inject HTML markup synchronously
     app.innerHTML = `
         <div style="padding:20px; font-family:Arial; min-height:100vh; background:#f3f4f6; text-align:center;">
             <div style="max-width:500px; margin:0 auto; background:white; border-radius:12px; padding:30px; box-shadow:0 4px 10px rgba(0,0,0,0.05); text-align:left;">
@@ -49,7 +48,6 @@ export async function openContactDetail(contact, facility) {
         renderContacts({ facility });
     };
 
-    // Route to new issue screen and auto-fill this contact name as the initiator
     document.getElementById('addContactIssueBtn').onclick = () => {
         const issueData = {
             facility: facility,
@@ -58,17 +56,13 @@ export async function openContactDetail(contact, facility) {
                 contact_id: contact.id
             }
         };
-        
-        // Update hash path to trigger your router engine framework
         window.location.hash = `#facilityIssues?facilityId=${facility.id}&initiatedBy=${encodeURIComponent(contact.Name)}`;
-        
-        // Dispatch window event alternative fallback in case standard route click didn't re-render active view pane
         window.dispatchEvent(new CustomEvent('navigate', { 
             detail: { target: 'facilityIssues', data: issueData } 
         }));
     };
 
-    // 2. Clear browser call stacks before calling the container matching lookups
+    // Use dynamic microtask callback sequencing to secure stable lookup references
     setTimeout(async () => {
         const managerContainer = document.getElementById('contactImageManagerContainer');
         if (managerContainer && typeof renderImageManagerSection === 'function') {
@@ -90,7 +84,7 @@ export async function openContactDetail(contact, facility) {
                 avatarContainer.innerHTML = `<div style="width:100px; height:100px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; margin:0 auto; border:3px solid #f5c400;">${(contact.Name || 'U').charAt(0).toUpperCase()}</div>`;
             }
         }
-    }, 0);
+    }, 10);
 }
 
 export async function renderContacts(data) {
@@ -148,7 +142,7 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 03:01:16 PM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 03:09:00 PM
             </div>
         </div>
     `;
@@ -279,10 +273,10 @@ export async function renderContacts(data) {
         await loadContactsGridData();
     };
 
-    // Corrected layout back routing logic
+    // Explicitly fallback targeting facilityControls structure view panel
     if (document.getElementById('backBtn')) {
         document.getElementById('backBtn').onclick = () => {
-            window.location.hash = '#dashboard';
+            window.location.hash = `#facilityControls?id=${facility.id}`;
             window.dispatchEvent(new CustomEvent('navigate', { 
                 detail: { target: 'facilityControls', data: facility } 
             }));
