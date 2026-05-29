@@ -45,7 +45,6 @@ export async function openContactDetail(contact, facility) {
         renderContacts({ facility });
     };
 
-    // Updated button logic to trigger the auto-open popup in View 5
     document.getElementById('addContactIssueBtn').onclick = () => {
         const issueData = {
             facility: facility,
@@ -175,4 +174,57 @@ export async function renderContacts(data) {
 
                 const avatarHtml = contactImg && contactImg.image_url 
                     ? `<img src="${contactImg.image_url}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.15);" alt="">`
-                    : `<div style="width:50px; height:50px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold;
+                    : `<div style="width:50px; height:50px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.15);">${nameDisplay.charAt(0).toUpperCase()}</div>`;
+
+                btn.innerHTML = `
+                    ${avatarHtml}
+                    <div style="text-align:center; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        <span style="color:#00264d; display:block;">${nameDisplay}</span>
+                        <span style="font-size:12px; font-weight:normal; color:#1e293b; display:block;">${roleDisplay}</span>
+                    </div>
+                    ${pendingCount ? `<span style="position:absolute; top:6px; right:6px; background:#dc2626; color:white; font-size:10px; padding:2px 6px; border-radius:8px;">${pendingCount}</span>` : ''}
+                `;
+                btn.onclick = () => openContactDetail(contact, facility);
+                contactsGrid.appendChild(btn);
+            });
+        } else {
+            contactsGrid.innerHTML = `<div style="grid-column:1/-1; color:#94a3b8; font-style:italic; padding:20px;">No contacts found.</div>`;
+        }
+    };
+
+    document.getElementById('addManualContactBtn').onclick = () => {
+        document.getElementById('modalTitle').innerText = "New Contact Profile";
+        ['manualContactName', 'manualContactRole', 'manualContactPhone', 'manualContactEmail', 'manualContactNotes'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('manualContactSaveBtn').innerText = "SAVE DETAILS";
+        document.getElementById('manualContactModal').style.display = 'flex';
+    };
+
+    document.getElementById('manualContactSaveBtn').onclick = async () => {
+        const name = document.getElementById('manualContactName').value;
+        if (!name) return alert('Name is required');
+        const contactData = { 
+            Name: name, 
+            Role: document.getElementById('manualContactRole').value, 
+            Phone: document.getElementById('manualContactPhone').value, 
+            Email: document.getElementById('manualContactEmail').value, 
+            Notes: document.getElementById('manualContactNotes').value, 
+            facility_id: facility.id 
+        };
+        await supabase.from('CONTACTS').insert([contactData]);
+        document.getElementById('manualContactModal').style.display = 'none';
+        await loadContactsGridData();
+    };
+
+    document.getElementById('manualContactCloseBtn').onclick = () => document.getElementById('manualContactModal').style.display = 'none';
+
+    document.getElementById('backBtn').onclick = () => {
+        if (facility?.id) {
+            window.location.hash = `#facilityControls?id=${facility.id}`;
+            window.dispatchEvent(new CustomEvent('navigate', { detail: { target: 'facilityControls', data: facility } }));
+        } else {
+            window.location.hash = `#dashboard`;
+        }
+    };
+
+    await loadContactsGridData();
+}
