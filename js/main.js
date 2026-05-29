@@ -1,7 +1,7 @@
 /* =================================================
 FILE: js/main.js
 PURPOSE: Router for View 1, 2, 3, 4, 5, and 6
-UPDATED: 2026-05-29 07:55:00 PM
+UPDATED: 2026-05-29 07:56:00 PM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -10,7 +10,7 @@ Always keep this header at the top of current files and new files.
 
 import { renderFacilities } from '../views/v1_facilitiesDashboard.js';
 import { renderFacilityControls } from '../views/v2_facilityControls.js';
-import { renderContacts as renderFacilityContacts } from '../views/v3_FacilityContacts/index.js';
+import { renderContacts as renderFacilityContacts } from '../views/v3_FacilityContacts.js';
 import { renderPendingProjects } from '../views/v4_pendingProjects.js';
 import { renderFacilityIssues } from '../views/v5_FacilityIssues.js';
 import { renderFacilityImages } from '../views/v6_FacilityImages.js';
