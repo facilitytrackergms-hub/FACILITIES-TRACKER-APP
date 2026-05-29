@@ -1,7 +1,7 @@
 /* =================================================
 FILE: js/main.js
 PURPOSE: Router for View 1, 2, 3, 4, 5, and 6
-UPDATED: 2026-05-28 08:30:00 PM
+UPDATED: 2026-05-28 10:45:00 PM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -57,16 +57,10 @@ window.navigateTo = (view, data = null) => {
         renderFacilityContacts(data);
     } 
     else if (view === 'pendingProjects') {
-        // Data contains { facility, contact } or just facility
-        const facility = data?.facility ? data.facility : data;
-        const contact = data?.contact ? data.contact : null;
-        renderPendingProjects(facility, contact);
+        renderPendingProjects(data);
     }
     else if (view === 'facilityIssues') {
-        // Data contains { facility, contact } or just facility
-        const facility = data?.facility ? data.facility : data;
-        const contact = data?.contact ? data.contact : null;
-        renderFacilityIssues(facility, contact);
+        renderFacilityIssues(data);
     }
     else if (view === 'facilityImages') {
         renderFacilityImages(data);
