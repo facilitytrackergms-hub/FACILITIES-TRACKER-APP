@@ -1,7 +1,7 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
 PURPOSE: Render Facility Contacts and Contact Detail View with Clean Direct Routing
-UPDATED: 2026-05-29 08:40:00 AM
+UPDATED: 2026-05-29 08:41:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -34,7 +34,6 @@ export async function renderContacts(data) {
 
             <div id="contactsGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:15px;"></div>
 
-            <!-- MANUAL CONTACT ADD MODAL OVERLAY -->
             <div id="manualContactModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000; justify-content:center; align-items:center; padding:20px;">
                 <div style="background:white; padding:25px; border-radius:12px; width:100%; max-width:420px; text-align:left; max-height:90vh; overflow-y:auto; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
                     <h3 style="margin-top:0; color:#00264d; border-bottom:2px solid #f5c400; padding-bottom:10px;">New Contact Profile</h3>
@@ -67,7 +66,7 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 08:40:00 AM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 08:41:00 AM
             </div>
         </div>
     `;
@@ -213,9 +212,6 @@ async function openContactDetail(contact, facility) {
     
     const contactName = contact.Name || 'Unnamed';
     const contactRole = contact.Role || '';
-    const contactPhone = contact.Phone || '';
-    const contactEmail = contact.Email || '';
-    const contactNotes = contact.Notes || 'None';
 
     const { data: totalCountArray } = await supabase
         .from('FACILITY_ISSUES')
@@ -225,20 +221,14 @@ async function openContactDetail(contact, facility) {
         .eq('open_issue', true);
 
     const issueCount = totalCountArray ? totalCountArray.length : 0;
-    const statusColor = issueCount > 0 ? '#ff7b00' : '#6b7280';
+    const statusColor = issueCount > 0 ? '#ff7b00' : '#4b5563';
 
     app.innerHTML = `
         <div style="padding:20px; font-family:Arial; min-height:100vh; text-align:center; background:#f3f4f6;">
+            <div id="contactImageManager" style="margin:0 auto 20px auto; max-width:400px;"></div>
+
             <h2 style="color:#00264d; margin-bottom:5px;">${contactName}</h2>
             <p style="color:#4b5563; font-weight:bold; margin-top:0; margin-bottom:20px;">${contactRole}</p>
-            
-            <div style="background:white; padding:15px; border-radius:10px; max-width:400px; margin:0 auto 20px auto; text-align:left; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-                <p style="margin:8px 0;"><strong>Phone:</strong> <a href="tel:${contactPhone}" style="color:#00264d; text-decoration:none;">${contactPhone || 'N/A'}</a></p>
-                <p style="margin:8px 0;"><strong>Email:</strong> <a href="mailto:${contactEmail}" style="color:#00264d; text-decoration:none;">${contactEmail || 'N/A'}</a></p>
-                <p style="margin:8px 0;"><strong>Notes:</strong> ${contactNotes}</p>
-            </div>
-
-            <div id="contactImageManager" style="margin:20px auto;"></div>
 
             <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:25px; max-width:450px; margin-left:auto; margin-right:auto;">
                 <button id="directIssuesPageBtn" style="flex:1; padding:14px; background:${statusColor}; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; position:relative; line-height:1.2;">
@@ -249,7 +239,7 @@ async function openContactDetail(contact, facility) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 08:40:00 AM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 08:41:00 AM
             </div>
         </div>
     `;
