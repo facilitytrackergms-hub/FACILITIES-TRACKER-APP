@@ -1,7 +1,7 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
-PURPOSE: Render Facility Contacts and Contact Detail View with clickable phone/email links
-UPDATED: 2026-05-29 02:50:33 PM
+PURPOSE: Render Facility Contacts and Contact Detail View with clickable links and new contact issue creation
+UPDATED: 2026-05-29 03:01:16 PM
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
@@ -11,7 +11,6 @@ export async function openContactDetail(contact, facility) {
     const app = document.getElementById('app');
     if (!app) return;
 
-    // Generate link elements dynamically if data exists
     const phoneLink = contact.Phone 
         ? `<a href="tel:${contact.Phone.replace(/[^0-9+]/g, '')}" style="color:#00264d; text-decoration:underline; font-weight:bold;">${contact.Phone}</a>` 
         : 'N/A';
@@ -20,7 +19,7 @@ export async function openContactDetail(contact, facility) {
         ? `<a href="mailto:${contact.Email}" style="color:#00264d; text-decoration:underline; font-weight:bold;">${contact.Email}</a>` 
         : 'N/A';
 
-    // 1. Immediately inject HTML so elements exist in the DOM tree right away
+    // 1. Inject HTML markup synchronously
     app.innerHTML = `
         <div style="padding:20px; font-family:Arial; min-height:100vh; background:#f3f4f6; text-align:center;">
             <div style="max-width:500px; margin:0 auto; background:white; border-radius:12px; padding:30px; box-shadow:0 4px 10px rgba(0,0,0,0.05); text-align:left;">
@@ -38,39 +37,60 @@ export async function openContactDetail(contact, facility) {
 
                 <div id="contactImageManagerContainer" style="margin-top:20px; border-top:1px solid #eee; padding-top:20px;"></div>
 
-                <div style="margin-top:30px; display:flex; gap:10px;">
-                    <button id="closeDetailBtn" style="flex:1; padding:12px; background:#00264d; color:white; border:none; border-radius:8px; cursor:pointer;">CLOSE DETAILS</button>
+                <div style="margin-top:30px; display:flex; flex-direction:column; gap:10px;">
+                    <button id="addContactIssueBtn" style="padding:14px; background:#28a745; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-size:14px; text-transform:uppercase;">+ Add Issue For This Contact</button>
+                    <button id="closeDetailBtn" style="padding:12px; background:#00264d; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">CLOSE DETAILS</button>
                 </div>
             </div>
         </div>
     `;
 
-    // 2. Initialize the Image Manager instantly while elements are available
-    const managerContainer = document.getElementById('contactImageManagerContainer');
-    if (managerContainer && typeof renderImageManagerSection === 'function') {
-        renderImageManagerSection('contact', contact.id, managerContainer);
-    }
-
     document.getElementById('closeDetailBtn').onclick = () => {
         renderContacts({ facility });
     };
 
-    // 3. Now run the async query against the correct table matching your schema
-    const { data: images } = await supabase
-        .from('FACILITY_IMAGES')
-        .select('*')
-        .eq('related_type', 'contact')
-        .eq('related_id', contact.id);
+    // Route to new issue screen and auto-fill this contact name as the initiator
+    document.getElementById('addContactIssueBtn').onclick = () => {
+        const issueData = {
+            facility: facility,
+            prefill: {
+                initiated_by: contact.Name,
+                contact_id: contact.id
+            }
+        };
+        
+        // Update hash path to trigger your router engine framework
+        window.location.hash = `#facilityIssues?facilityId=${facility.id}&initiatedBy=${encodeURIComponent(contact.Name)}`;
+        
+        // Dispatch window event alternative fallback in case standard route click didn't re-render active view pane
+        window.dispatchEvent(new CustomEvent('navigate', { 
+            detail: { target: 'facilityIssues', data: issueData } 
+        }));
+    };
 
-    const avatarContainer = document.getElementById('detailAvatarContainer');
-    if (avatarContainer) {
-        if (images && images.length > 0) {
-            const latestImg = images.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-            avatarContainer.innerHTML = `<img src="${latestImg.image_url}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);">`;
-        } else {
-            avatarContainer.innerHTML = `<div style="width:100px; height:100px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; margin:0 auto; border:3px solid #f5c400;">${(contact.Name || 'U').charAt(0).toUpperCase()}</div>`;
+    // 2. Clear browser call stacks before calling the container matching lookups
+    setTimeout(async () => {
+        const managerContainer = document.getElementById('contactImageManagerContainer');
+        if (managerContainer && typeof renderImageManagerSection === 'function') {
+            renderImageManagerSection('contact', contact.id, managerContainer);
         }
-    }
+
+        const { data: images } = await supabase
+            .from('FACILITY_IMAGES')
+            .select('*')
+            .eq('related_type', 'contact')
+            .eq('related_id', contact.id);
+
+        const avatarContainer = document.getElementById('detailAvatarContainer');
+        if (avatarContainer) {
+            if (images && images.length > 0) {
+                const latestImg = images.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+                avatarContainer.innerHTML = `<img src="${latestImg.image_url}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);">`;
+            } else {
+                avatarContainer.innerHTML = `<div style="width:100px; height:100px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; margin:0 auto; border:3px solid #f5c400;">${(contact.Name || 'U').charAt(0).toUpperCase()}</div>`;
+            }
+        }
+    }, 0);
 }
 
 export async function renderContacts(data) {
@@ -91,7 +111,7 @@ export async function renderContacts(data) {
             
             <div style="margin-bottom:25px; display:flex; gap:10px; justify-content:center;">
                 <button id="addManualContactBtn" style="padding:14px 20px; border:none; border-radius:8px; background:#28a745; color:white; font-weight:bold; cursor:pointer;">+ ADD NEW CONTACT</button>
-                <button id="backBtn" style="padding:14px 20px; border:none; border-radius:8px; background:#00264d; color:white; cursor:pointer;">BACK TO DASHBOARD</button>
+                <button id="backBtn" style="padding:14px 20px; border:none; border-radius:8px; background:#00264d; color:white; font-weight:bold; cursor:pointer;">BACK TO DASHBOARD</button>
             </div>
 
             <div id="contactsGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:15px;"></div>
@@ -128,7 +148,7 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:50:33 PM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 03:01:16 PM
             </div>
         </div>
     `;
@@ -259,9 +279,13 @@ export async function renderContacts(data) {
         await loadContactsGridData();
     };
 
+    // Corrected layout back routing logic
     if (document.getElementById('backBtn')) {
         document.getElementById('backBtn').onclick = () => {
-            window.location.hash = '#dashboard'; 
+            window.location.hash = '#dashboard';
+            window.dispatchEvent(new CustomEvent('navigate', { 
+                detail: { target: 'facilityControls', data: facility } 
+            }));
         };
     }
 
