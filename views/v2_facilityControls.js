@@ -1,125 +1,77 @@
 /* =================================================
-FILE: views/v3_FacilityContacts.js
-UPDATED: 2026-05-29 08:50:00 PM
+FILE: js/main.js
+PURPOSE: Router for View 1, 2, 3, 4, 5, and 6
+UPDATED: 2026-05-28 10:45:00 PM
+
+STRICT HEADER RULE:
+Do not ever remove or change this header section.
+Always keep this header at the top of current files and new files.
+
+STRICT FILE RULES:
+1. Always output the full, complete file content.
+2. NEVER ask the user to "find and replace" or manually edit code.
+3. DO NOT change code, logic, or styling unless explicitly requested.
+4. Keep the file exactly as it is, only applying the requested updates.
+5. WE CANNOT CREATE EMPTY FILES. Validation is required.
+6. Always update the visible version tag for every touched view/file, including V1. If any code update affects the app, update the visible bottom version label with the current date, time, and exact file name.
+
+GITHUB PUSH RULE:
+1. Never do full-file replacement when pushing directly to GitHub unless the file is small and the change is simple.
+2. Fetch the current file from GitHub first.
+3. Make the smallest possible code change.
+4. Push only the targeted section that needs the update.
+5. If the request is large, split it into small commits.
+6. If a full-file replacement is needed, create/download the full file for manual upload instead of pushing the whole file through the GitHub tool.
+7. Never touch unrelated files or unrelated sections.
+8. Always confirm whether the push succeeded or failed.
+9. If GitHub blocks the write action, explain clearly that nothing was pushed.
 ================================================= */
 
-import { supabase } from '../js/supabaseClient.js';
-import { renderImageManagerSection } from '../js/imageManager.js';
+import { renderFacilities } from '../views/v1_facilitiesDashboard.js';
+import { renderFacilityControls } from '../views/v2_facilityControls.js';
+import { renderContacts as renderFacilityContacts } from '../views/v3_FacilityContacts.js';
+import { renderPendingProjects } from '../views/v4_pendingProjects.js';
+import { renderFacilityIssues } from '../views/v5_FacilityIssues.js';
+import { renderFacilityImages } from '../views/v6_FacilityImages.js';
 
-export async function renderContacts(data) {
+window.navigateTo = (view, data = null) => {
     const app = document.getElementById('app');
-    if (!app) return;
-
-    // Ensure we always unpack facility correctly
-    const facility = data?.facility || data;
-    const initialContact = data?.contact || null;
-
-    if (!facility || !facility.id) {
-        console.error("Invalid facility passed to renderContacts:", facility);
+    if (!app) {
+        console.error("Critical Error: Element with ID 'app' not found.");
         return;
     }
+    
+    // Clear the screen for the next view
+    app.innerHTML = '';
+    app.style.backgroundColor = ''; 
 
-    if (initialContact) {
-        return openContactDetail(initialContact, facility);
+    console.log(`Navigating to: ${view}`, data); // Debugging log
+
+    if (view === 'dashboard') {
+        renderFacilities();
+    } 
+    else if (view === 'facilityControls') {
+        renderFacilityControls(data);
+    } 
+    else if (view === 'facilityContacts' || view === 'facilityInfo') { 
+        renderFacilityContacts(data);
+    } 
+    else if (view === 'pendingProjects') {
+        renderPendingProjects(data);
     }
-
-    app.innerHTML = `
-        <div style="padding:20px; font-family:Arial; min-height:100vh; text-align:center; background:#f3f4f6;">
-            <h1 style="font-size:22px; margin-bottom:20px; color:#111827;">${facility?.Name || 'FACILITY'} CONTACTS</h1>
-            <div id="contactsGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:15px;"></div>
-
-            <div style="margin-top:30px;">
-                <button id="backBtn" style="padding:12px 18px; border:none; border-radius:8px; background:#6b7280; color:white; cursor:pointer;">Back to Facility</button>
-            </div>
-
-            <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 08:50:00 PM
-            </div>
-        </div>
-    `;
-
-    const contactsGrid = document.getElementById('contactsGrid');
-
-    const { data: contacts, error: contactsError } = await supabase
-        .from('CONTACTS')
-        .select('*')
-        .eq('facility_id', facility.id);
-
-    const { data: openIssues, error: issuesError } = await supabase
-        .from('FACILITY_PROJECT_ISSUES')
-        .select('id, contact_id')
-        .eq('open_issue', true)
-        .eq('project_id', facility.id);
-
-    const issuesCountMap = {};
-    if (openIssues) {
-        openIssues.forEach(issue => {
-            if (issue.contact_id) {
-                issuesCountMap[issue.contact_id] = (issuesCountMap[issue.contact_id] || 0) + 1;
-            }
-        });
+    else if (view === 'facilityIssues') {
+        renderFacilityIssues(data);
     }
-
-    if (contactsError) console.error('Contacts fetch error:', contactsError);
-    if (issuesError) console.error('Issues fetch error:', issuesError);
-
-    if (contacts) {
-        contacts.forEach(contact => {
-            const btn = document.createElement('button');
-            btn.style.padding = '16px';
-            btn.style.borderRadius = '12px';
-            btn.style.background = '#f5c400';
-            btn.style.border = 'none';
-            btn.style.cursor = 'pointer';
-            btn.style.fontWeight = 'bold';
-            btn.style.position = 'relative';
-            btn.innerHTML = `
-                ${contact.name || 'Unnamed'}<br>
-                <span style="font-size:12px;">${contact.role || ''}</span>
-                ${issuesCountMap[contact.id] ? `<span style="position:absolute; top:6px; right:6px; background:red; color:white; font-size:10px; padding:2px 6px; border-radius:8px;">${issuesCountMap[contact.id]}</span>` : ''}
-            `;
-            btn.onclick = () => openContactDetail(contact, facility);
-            contactsGrid.appendChild(btn);
-        });
+    else if (view === 'facilityImages') {
+        renderFacilityImages(data);
     }
-
-    document.getElementById('backBtn').onclick = () => {
-        if (window.navigateTo) window.navigateTo('facilityControls', facility);
-    };
-}
-
-async function openContactDetail(contact, facility) {
-    const app = document.getElementById('app');
-    app.innerHTML = `
-        <div style="padding:20px; font-family:Arial; min-height:100vh; text-align:center; background:#f3f4f6;">
-            <h2>${contact.name || 'Unnamed'} - ${contact.role || ''}</h2>
-            <p>Phone: <a href="tel:${contact.phone}">${contact.phone}</a></p>
-            <p>Email: <a href="mailto:${contact.email}">${contact.email}</a></p>
-            <p>Notes: ${contact.notes || 'None'}</p>
-
-            <div id="contactImageManager" style="margin:20px auto;"></div>
-
-            <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:20px;">
-                <button id="addIssueBtn" style="padding:12px 16px; background:#00264d; color:white; border:none; border-radius:8px; cursor:pointer;">Add New Issue</button>
-                <button id="backBtn" style="padding:12px 16px; background:#6b7280; color:white; border:none; border-radius:8px; cursor:pointer;">Back to Contacts</button>
-            </div>
-
-            <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 08:50:00 PM
-            </div>
-        </div>
-    `;
-
-    const imageMount = document.getElementById('contactImageManager');
-    if (imageMount) {
-        renderImageManagerSection(imageMount, 'contact', contact.id, { title: 'Contact Image', facility });
+    else {
+        console.warn(`View "${view}" not recognized. Defaulting to dashboard.`);
+        renderFacilities();
     }
+};
 
-    document.getElementById('backBtn').onclick = () => {
-        window.navigateTo('facilityContacts', facility);
-    };
-
-    document.getElementById('addIssueBtn').onclick = () => {
-        window.navigateTo('pendingProjects', { facility, contact });
-    };
-}
+// Initial Start
+document.addEventListener('DOMContentLoaded', () => {
+    renderFacilities();
+});
