@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 05:40:00 AM
+UPDATED: 2026-05-29 05:45:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -20,6 +20,7 @@ export async function renderFacilityIssues(data) {
     }
 
     let activeFacilityContacts = [];
+    let pendingContactSaveResolver = null;
 
     const app = document.getElementById('app');
 
@@ -66,12 +67,61 @@ export async function renderFacilityIssues(data) {
                     </div>
                 </div>
             </div>
+
+            <div id="customDialogModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;justify-content:center;align-items:center;padding:20px;">
+                <div style="background:white;padding:25px;border-radius:12px;width:100%;max-width:400px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.3);">
+                    <div id="customDialogIcon" style="font-size:40px;margin-bottom:15px;">⚠️</div>
+                    <h3 id="customDialogTitle" style="margin:0 0 10px 0;color:#00264d;font-size:18px;">Notification</h3>
+                    <p id="customDialogMessage" style="color:#4b5563;font-size:14px;margin:0 0 25px 0;line-height:1.5;"></p>
+                    <div id="customDialogButtons" style="display:flex;gap:12px;justify-content:center;">
+                        <button id="customDialogConfirmBtn" style="padding:12px 24px;background:#28a745;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:bold;min-width:100px;">YES</button>
+                        <button id="customDialogCancelBtn" style="padding:12px 24px;background:#6b7280;color:white;border:none;border-radius:8px;cursor:pointer;min-width:100px;">NO</button>
+                    </div>
+                </div>
+            </div>
             
             <div style="margin-top:40px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v5_FacilityIssues.js | Updated: 2026-05-29 05:40:00 AM
+                File: v5_FacilityIssues.js | Updated: 2026-05-29 05:45:00 AM
             </div>
         </div>
     `;
+
+    const showCustomAlert = (title, message, icon = '⚠️') => {
+        document.getElementById('customDialogIcon').innerText = icon;
+        document.getElementById('customDialogTitle').innerText = title;
+        document.getElementById('customDialogMessage').innerText = message;
+        document.getElementById('customDialogConfirmBtn').innerText = "OK";
+        document.getElementById('customDialogCancelBtn').style.display = 'none';
+        document.getElementById('customDialogModal').style.display = 'flex';
+        
+        return new Promise((resolve) => {
+            document.getElementById('customDialogConfirmBtn').onclick = () => {
+                document.getElementById('customDialogModal').style.display = 'none';
+                resolve(true);
+            };
+        });
+    };
+
+    const showCustomConfirm = (title, message, icon = '❓') => {
+        document.getElementById('customDialogIcon').innerText = icon;
+        document.getElementById('customDialogTitle').innerText = title;
+        document.getElementById('customDialogMessage').innerText = message;
+        document.getElementById('customDialogConfirmBtn').innerText = "YES";
+        document.getElementById('customDialogCancelBtn').innerText = "NO";
+        document.getElementById('customDialogCancelBtn').style.display = 'block';
+        document.getElementById('customDialogModal').style.display = 'flex';
+
+        return new Promise((resolve) => {
+            document.getElementById('customDialogConfirmBtn').onclick = () => {
+                document.getElementById('customDialogModal').style.display = 'none';
+                resolve(true);
+            };
+            document.getElementById('customDialogCancelBtn').onclick = () => {
+                document.getElementById('customDialogModal').style.display = 'none';
+                resolve(false);
+            };
+        });
+    };
 
     const loadFacilityContacts = async () => {
         const { data: contactsData, error } = await supabase
@@ -160,7 +210,10 @@ export async function renderFacilityIssues(data) {
             open_issue: true
         };
 
-        if (!payload.issue) return alert("Please describe the issue.");
+        if (!payload.issue) {
+            await showCustomAlert("Missing Description", "Please describe the problem before saving.", "📋");
+            return;
+        }
 
         if (initiatedByName) {
             const contactExists = activeFacilityContacts.some(
@@ -168,7 +221,12 @@ export async function renderFacilityIssues(data) {
             );
 
             if (!contactExists) {
-                const confirmAdd = confirm(`The initiator "${initiatedByName}" is not in your facility contacts list. Do you want to add them as a new contact?`);
+                const confirmAdd = await showCustomConfirm(
+                    "New Contact Detected", 
+                    `The initiator "${initiatedByName}" is not in your contacts list. Do you want to add them as a new facility contact?`, 
+                    "👤"
+                );
+                
                 if (confirmAdd) {
                     const { error: contactError } = await supabase
                         .from('CONTACTS')
@@ -176,7 +234,7 @@ export async function renderFacilityIssues(data) {
                     
                     if (contactError) {
                         console.error("Error auto-creating new contact:", contactError);
-                        alert("Could not create new contact entry, but proceeding with issue save.");
+                        await showCustomAlert("Database Sync Notice", "Could not verify contact profile matching, but proceeding with saving your issue data.", "⚠️");
                     } else {
                         await loadFacilityContacts();
                     }
@@ -191,7 +249,10 @@ export async function renderFacilityIssues(data) {
             result = await supabase.from('FACILITY_ISSUES').update(payload).eq('id', id).select();
         }
 
-        if (result.error) return alert("Error saving issue");
+        if (result.error) {
+            await showCustomAlert("Error Saving", "Could not sync layout fields to the remote platform.", "❌");
+            return;
+        }
 
         const savedItem = result.data[0];
         if (savedItem) {
@@ -199,6 +260,7 @@ export async function renderFacilityIssues(data) {
             document.getElementById('saveIssueBtn').innerText = "UPDATE INFO";
             document.getElementById('issue-image-section').style.display = 'block';
             renderImageManagerSection(document.getElementById('issue-image-container'), 'issue', savedItem.id, { facility, title:'Issue Photos' });
+            await showCustomAlert("Success", "Issue updated successfully!", "✅");
         }
     };
 
