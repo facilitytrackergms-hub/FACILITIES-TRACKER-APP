@@ -10,7 +10,6 @@ Always keep this header at the top of current files and new files.
 
 import { renderFacilities } from '../views/v1_facilitiesDashboard.js';
 import { renderFacilityControls } from '../views/v2_facilityControls.js';
-// 1. Updated import to point to the new modular folder index
 import { renderContacts as renderFacilityContacts } from '../views/v3_FacilityContacts/index.js';
 import { renderPendingProjects } from '../views/v4_pendingProjects.js';
 import { renderFacilityIssues } from '../views/v5_FacilityIssues.js';
@@ -52,10 +51,10 @@ window.navigateTo = (view, data = null) => {
     }
 };
 
-// 2. Updated for Test Mode to bypass the dashboard and go straight to contacts
+// --- TEST MODE: FORCING V3 MODULAR VIEW ---
 document.addEventListener('DOMContentLoaded', () => {
     const testFacility = {
-        id: 48, // Using ID 48 from your database screenshot
+        id: 48, 
         Name: 'Test Facility 48'
     };
 
