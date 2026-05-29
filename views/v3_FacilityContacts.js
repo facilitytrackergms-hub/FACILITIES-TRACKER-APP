@@ -1,7 +1,7 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
 PURPOSE: Render Facility Contacts and Contact Detail View with Clean Direct Routing
-UPDATED: 2026-05-29 02:01:02 PM
+UPDATED: 2026-05-29 02:05:12 PM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -66,7 +66,7 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:01:02 PM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:05:12 PM
             </div>
         </div>
     `;
@@ -270,8 +270,8 @@ async function openContactDetail(contact, facility) {
 
     const activeAvatarUrl = contactImg && contactImg.length > 0 ? contactImg[0].public_url : null;
     const avatarHeaderHtml = activeAvatarUrl 
-        ? `<img src="${activeAvatarUrl}" style="width:90px; height:90px; border-radius:50%; object-fit:cover; margin:0 auto 15px auto; display:block; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);" alt="">`
-        : `<div style="width:90px; height:90px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; margin:0 auto 15px auto; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);">${contactName.charAt(0).toUpperCase()}</div>`;
+        ? `<img src="${activeAvatarUrl}" style="width:110px; height:110px; border-radius:50%; object-fit:cover; margin:0 auto 15px auto; display:block; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);" alt="">`
+        : `<div style="width:110px; height:110px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:36px; font-weight:bold; margin:0 auto 15px auto; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);">${contactName.charAt(0).toUpperCase()}</div>`;
 
     app.innerHTML = `
         <div style="padding:20px; font-family:Arial; min-height:100vh; text-align:center; background:#f3f4f6;">
@@ -283,9 +283,9 @@ async function openContactDetail(contact, facility) {
                 
                 <div id="contactImageManager" style="margin:0 auto 20px auto; max-width:100%; display:flex; justify-content:center;"></div>
 
-                <div style="text-align:left; border-top:1px solid #f3f4f6; padding-top:15px; font-size:14px; color:#374151; display:flex; flex-direction:column; gap:10px;">
-                    <p style="margin:0;"><strong>Phone:</strong> <a href="tel:${contactPhone}" style="color:#00264d; text-decoration:none; font-weight:500;">${contactPhone || 'N/A'}</a></p>
-                    <p style="margin:0;"><strong>Email:</strong> <a href="mailto:${contactEmail}" style="color:#00264d; text-decoration:none; font-weight:500;">${contactEmail || 'N/A'}</a></p>
+                <div style="text-align:left; border-top:1px solid #f3f4f6; padding-top:15px; font-size:15px; color:#374151; display:flex; flex-direction:column; gap:12px;">
+                    <p style="margin:0;"><strong>Phone:</strong> <a href="tel:${contactPhone.replace(/\s+/g, '')}" style="color:#00264d; text-decoration:underline; font-weight:bold; margin-left:5px;">${contactPhone || 'N/A'}</a></p>
+                    <p style="margin:0;"><strong>Email:</strong> <a href="mailto:${contactEmail}" style="color:#00264d; text-decoration:underline; font-weight:bold; margin-left:5px;">${contactEmail || 'N/A'}</a></p>
                     <p style="margin:0; line-height:1.4;"><strong>Notes:</strong> <span style="color:#6b7280;">${contactNotes}</span></p>
                 </div>
             </div>
@@ -306,14 +306,14 @@ async function openContactDetail(contact, facility) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:01:02 PM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:05:12 PM
             </div>
         </div>
     `;
 
     const imageMount = document.getElementById('contactImageManager');
     if (imageMount) {
-        renderImageManagerSection(imageMount, 'contact', contact.id, { title: 'Contact Image', facility });
+        renderImageManagerSection(imageMount, 'contact', contact.id, { title: 'Upload Avatar Profile Picture', facility });
     }
 
     document.getElementById('directIssuesPageBtn').onclick = () => {
