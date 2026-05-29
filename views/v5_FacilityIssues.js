@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 01:10:00 PM
+UPDATED: 2026-05-29 01:45:00 PM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -65,7 +65,7 @@ export async function renderFacilityIssues(facility, contact = null) {
             </div>
 
             <div style="margin-top: 40px; font-size: 10px; color: #94a3b8; border-top: 1px solid #e5e7eb; padding-top: 10px;">
-                File: v5_FacilityIssues.js | Updated: 2026-05-29 01:10:00 PM
+                File: v5_FacilityIssues.js | Updated: 2026-05-29 01:45:00 PM
             </div>
         </div>
     `;
@@ -128,7 +128,7 @@ export async function renderFacilityIssues(facility, contact = null) {
         const imageContainer = document.getElementById('issue-image-container');
         imageContainer.innerHTML = '';
 
-        // Show image section immediately for new issue with a temporary facility object
+        // New issue: always pass a valid facility object
         const facilityForImages = facility || { id: facilityId || null, Name: facilityName };
         document.getElementById('issue-image-section').style.display = 'block';
         renderImageManagerSection(imageContainer, 'issue', null, { facility: facilityForImages, title: 'Issue Photos' });
