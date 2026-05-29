@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 06:15:00 AM
+UPDATED: 2026-05-29 06:22:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -36,7 +36,6 @@ export async function renderFacilityIssues(data) {
                 </div>
             </div>
 
-            <!-- MAIN ISSUE MODAL -->
             <div id="issueModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;justify-content:center;align-items:center;padding:20px;">
                 <div style="background:white;padding:20px;border-radius:12px;width:100%;max-width:450px;text-align:left;max-height:90vh;overflow-y:auto;">
                     <h3 id="modalTitle" style="margin-top:0;color:#00264d;border-bottom:2px solid #f5c400;padding-bottom:10px;">Report Issue</h3>
@@ -68,7 +67,6 @@ export async function renderFacilityIssues(data) {
                 </div>
             </div>
 
-            <!-- CUSTOM DIALOG POPUP MODAL -->
             <div id="customDialogModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;justify-content:center;align-items:center;padding:20px;">
                 <div style="background:white;padding:25px;border-radius:12px;width:100%;max-width:400px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.3);">
                     <div id="customDialogIcon" style="font-size:40px;margin-bottom:15px;">⚠️</div>
@@ -81,7 +79,6 @@ export async function renderFacilityIssues(data) {
                 </div>
             </div>
 
-            <!-- QUICK ADD CONTACT EXTENSION MODAL WITH INLINE IMAGES -->
             <div id="quickContactModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2500;justify-content:center;align-items:center;padding:20px;">
                 <div style="background:white;padding:25px;border-radius:12px;width:100%;max-width:420px;text-align:left;box-shadow:0 4px 15px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
                     <h3 style="margin-top:0;color:#00264d;border-bottom:2px solid #f5c400;padding-bottom:10px;">Add Contact Details</h3>
@@ -101,7 +98,6 @@ export async function renderFacilityIssues(data) {
                     <label style="display:block;font-size:12px;font-weight:bold;color:#666;margin-top:15px;">NOTES</label>
                     <textarea id="quickContactNotes" style="width:100%;padding:10px;margin-top:5px;border:1px solid #ccc;border-radius:6px;min-height:60px;" placeholder="Extra notes..."></textarea>
                     
-                    <!-- DYNAMIC CONTACT IMAGE SECTION -->
                     <div id="quickContactImageSection" style="display:none;margin-top:20px;border-top:1px solid #eee;padding-top:15px;">
                         <label style="display:block;font-size:12px;font-weight:bold;color:#666;margin-bottom:10px;">CONTACT PICTURE / IMAGES</label>
                         <div id="quickContactImageContainer"></div>
@@ -115,7 +111,7 @@ export async function renderFacilityIssues(data) {
             </div>
             
             <div style="margin-top:40px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v5_FacilityIssues.js | Updated: 2026-05-29 06:15:00 AM
+                File: v5_FacilityIssues.js | Updated: 2026-05-29 06:22:00 AM
             </div>
         </div>
     `;
@@ -164,7 +160,6 @@ export async function renderFacilityIssues(data) {
         document.getElementById('quickContactEmail').value = '';
         document.getElementById('quickContactNotes').value = '';
         
-        // Hide image section dynamically until contact record generation yields an explicit ID
         document.getElementById('quickContactImageSection').style.display = 'none';
         document.getElementById('quickContactImageContainer').innerHTML = '';
         
@@ -176,7 +171,6 @@ export async function renderFacilityIssues(data) {
 
         return new Promise((resolve) => {
             document.getElementById('quickContactSaveBtn').onclick = async () => {
-                // If contact is already saved, this button functions as 'DONE' to exit
                 if (activeContactId) {
                     document.getElementById('quickContactModal').style.display = 'none';
                     resolve(true);
@@ -209,7 +203,6 @@ export async function renderFacilityIssues(data) {
                 if (savedContact) {
                     activeContactId = savedContact.id;
                     
-                    // Display image loader section natively inline now that record context exists
                     document.getElementById('quickContactImageSection').style.display = 'block';
                     renderImageManagerSection(
                         document.getElementById('quickContactImageContainer'), 
@@ -218,7 +211,6 @@ export async function renderFacilityIssues(data) {
                         { title: 'Contact Images', facility }
                     );
 
-                    // Morph button layouts to reflect complete row synchronization status
                     document.getElementById('quickContactSaveBtn').innerText = "DONE";
                     document.getElementById('quickContactCancelBtn').style.display = 'none';
                 }
@@ -254,6 +246,8 @@ export async function renderFacilityIssues(data) {
     };
 
     const loadIssues = async () => {
+        await loadFacilityContacts();
+
         const { data: dbData, error } = await supabase.from('FACILITY_ISSUES')
             .select('*')
             .eq('facility_id', facility.id)
@@ -261,20 +255,61 @@ export async function renderFacilityIssues(data) {
         if (error) { console.error(error); return; }
 
         const list = document.getElementById('issuesList');
-        list.innerHTML = dbData && dbData.length ? dbData.map(item => `
-            <div class="issue-card" style="background:white;padding:15px;border-radius:10px;border-left:5px solid ${item.open_issue ? '#dc2625':'#28a745'};cursor:pointer;"
-                id="facility-issue-item-${item.id}">
-                <strong style="color:#00264d;">${item.issue}</strong>
-                <span style="font-size:10px;color:#94a3b8;">${new Date(item.created_at).toLocaleDateString()}</span>
-            </div>
-        `).join('') : '<div style="text-align:center;color:#94a3b8;font-style:italic;">No issues reported yet.</div>';
-
-        if (dbData) {
-            dbData.forEach(item => {
-                const el = document.getElementById(`facility-issue-item-${item.id}`);
-                if (el) el.onclick = () => window.editIssue(item);
-            });
+        
+        if (!dbData || !dbData.length) {
+            list.innerHTML = '<div style="text-align:center;color:#94a3b8;font-style:italic;">No issues reported yet.</div>';
+            return;
         }
+
+        let cardsHtml = '';
+        
+        for (const item of dbData) {
+            // Find corresponding contact to fetch their image attachment context matching layout
+            const matchedContact = activeFacilityContacts.find(
+                c => (c.Name || '').toLowerCase() === (item.initiated_by || '').toLowerCase()
+            );
+
+            let avatarMarkup = `<div style="width:40px;height:40px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:18px;color:#94a3b8;font-weight:bold;flex-shrink:0;">👤</div>`;
+
+            if (matchedContact) {
+                // Read from storage using correct paths matched to storage rules
+                const { data: fileList } = await supabase.storage
+                    .from('facility-images')
+                    .list(`contact/${matchedContact.id}`);
+
+                if (fileList && fileList.length > 0) {
+                    const sortedFiles = fileList.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                    const targetFile = sortedFiles[0].name;
+                    
+                    const { data: publicUrlData } = supabase.storage
+                        .from('facility-images')
+                        .getPublicUrl(`contact/${matchedContact.id}/${targetFile}`);
+                        
+                    if (publicUrlData?.publicUrl) {
+                        avatarMarkup = `<img src="${publicUrlData.publicUrl}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid #d1d5db;" />`;
+                    }
+                }
+            }
+
+            cardsHtml += `
+                <div class="issue-card" style="background:white;padding:15px;border-radius:10px;border-left:5px solid ${item.open_issue ? '#dc2625':'#28a745'};cursor:pointer;display:flex;align-items:center;gap:12px;"
+                    id="facility-issue-item-${item.id}">
+                    ${avatarMarkup}
+                    <div style="flex:1;">
+                        <strong style="display:block;color:#00264d;font-size:15px;">${item.issue}</strong>
+                        <span style="font-size:12px;color:#6b7280;">By: ${item.initiated_by || 'Unknown'}</span>
+                    </div>
+                    <span style="font-size:10px;color:#94a3b8;white-space:nowrap;">${new Date(item.created_at).toLocaleDateString()}</span>
+                </div>
+            `;
+        }
+
+        list.innerHTML = cardsHtml;
+
+        dbData.forEach(item => {
+            const el = document.getElementById(`facility-issue-item-${item.id}`);
+            if (el) el.onclick = () => window.editIssue(item);
+        });
     };
 
     window.editIssue = async (item) => {
