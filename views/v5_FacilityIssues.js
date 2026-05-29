@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 06:45:00 AM
+UPDATED: 2026-05-29 07:05:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -25,18 +25,17 @@ export async function renderFacilityIssues(data) {
 
     app.innerHTML = `
         <div style="padding:20px;font-family:Arial;background:#f3f4f6;min-height:100vh;text-align:center;">
-            <h1 style="color:#00264d;font-size:22px;text-transform:uppercase;">Facility Issues</h1>
+            <h1 style="color:#00264d;font-size:22px;text-transform:uppercase;">Standard Facility Issues</h1>
             <p style="color:#4b5563;margin-bottom:25px;">${facility.Name}</p>
 
             <div style="display:flex;flex-direction:column;gap:15px;max-width:400px;margin:0 auto;">
                 <button id="createNewIssueBtn" style="padding:15px;background:#28a745;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:bold;">+ REPORT NEW ISSUE</button>
-                <button id="backToDashboardBtn" style="padding:12px;background:#00264d;color:white;border:none;border-radius:8px;cursor:pointer;">BACK TO DASHBOARD</button>
+                <button id="backToControlsBtn" style="padding:12px;background:#00264d;color:white;border:none;border-radius:8px;cursor:pointer;">BACK TO CONTROLS</button>
                 <div id="issuesList" style="margin-top:20px;display:flex;flex-direction:column;gap:12px;text-align:left;">
                     <div style="text-align:center;color:#94a3b8;font-style:italic;">Loading issues...</div>
                 </div>
             </div>
 
-            <!-- MAIN ISSUE MODAL -->
             <div id="issueModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;justify-content:center;align-items:center;padding:20px;">
                 <div style="background:white;padding:20px;border-radius:12px;width:100%;max-width:450px;text-align:left;max-height:90vh;overflow-y:auto;">
                     <h3 id="modalTitle" style="margin-top:0;color:#00264d;border-bottom:2px solid #f5c400;padding-bottom:10px;">Report Issue</h3>
@@ -68,7 +67,6 @@ export async function renderFacilityIssues(data) {
                 </div>
             </div>
 
-            <!-- CUSTOM DIALOG POPUP MODAL -->
             <div id="customDialogModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;justify-content:center;align-items:center;padding:20px;">
                 <div style="background:white;padding:25px;border-radius:12px;width:100%;max-width:400px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.3);">
                     <div id="customDialogIcon" style="font-size:40px;margin-bottom:15px;">⚠️</div>
@@ -81,7 +79,6 @@ export async function renderFacilityIssues(data) {
                 </div>
             </div>
 
-            <!-- QUICK ADD CONTACT EXTENSION MODAL WITH INLINE IMAGES -->
             <div id="quickContactModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2500;justify-content:center;align-items:center;padding:20px;">
                 <div style="background:white;padding:25px;border-radius:12px;width:100%;max-width:420px;text-align:left;box-shadow:0 4px 15px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
                     <h3 style="margin-top:0;color:#00264d;border-bottom:2px solid #f5c400;padding-bottom:10px;">Add Contact Details</h3>
@@ -114,7 +111,7 @@ export async function renderFacilityIssues(data) {
             </div>
             
             <div style="margin-top:40px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v5_FacilityIssues.js | Updated: 2026-05-29 06:45:00 AM
+                File: v5_FacilityIssues.js | Updated: 2026-05-29 07:05:00 AM
             </div>
         </div>
     `;
@@ -260,7 +257,7 @@ export async function renderFacilityIssues(data) {
         const list = document.getElementById('issuesList');
         
         if (!dbData || !dbData.length) {
-            list.innerHTML = '<div style="text-align:center;color:#94a3b8;font-style:italic;">No issues reported yet.</div>';
+            list.innerHTML = '<div style="text-align:center;color:#94a3b8;font-style:italic;">No active standard issues reported yet.</div>';
             return;
         }
 
@@ -407,8 +404,8 @@ export async function renderFacilityIssues(data) {
         loadIssues();
     };
 
-    document.getElementById('backToDashboardBtn').onclick = () => {
-        if (window.navigateTo) window.navigateTo('facilitiesDashboard');
+    document.getElementById('backToControlsBtn').onclick = () => {
+        if (window.navigateTo) window.navigateTo('facilityControls', facility);
     };
 
     await loadIssues();
