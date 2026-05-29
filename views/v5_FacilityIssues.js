@@ -1,10 +1,10 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 12:10:00 PM
+UPDATED: 2026-05-29 12:50:00 PM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
-Always keep this header at the top of current files and new files.
+Always keep the header at the top of current files and new files.
 
 STRICT FILE RULES:
 1. Always output the full, complete file content.
@@ -65,7 +65,7 @@ export async function renderFacilityIssues(facility, contact = null) {
             </div>
 
             <div style="margin-top: 40px; font-size: 10px; color: #94a3b8; border-top: 1px solid #e5e7eb; padding-top: 10px;">
-                File: v5_FacilityIssues.js | Updated: 2026-05-29 12:10:00 PM
+                File: v5_FacilityIssues.js | Updated: 2026-05-29 12:50:00 PM
             </div>
         </div>
     `;
@@ -96,6 +96,17 @@ export async function renderFacilityIssues(facility, contact = null) {
     };
 
     window.editIssue = (item) => {
+        const imageContainer = document.getElementById('issue-image-container');
+        imageContainer.innerHTML = '';
+
+        // Ensure a facility object exists for image manager
+        const facilityForImages = (facility && facility.id) 
+            ? facility 
+            : { id: item.project_id, Name: item.facility_name || 'Unknown Facility' };
+
+        document.getElementById('issue-image-section').style.display = 'block';
+        renderImageManagerSection(imageContainer, 'issue', item.id, { facility: facilityForImages, title: 'Issue Photos' });
+
         document.getElementById('issueId').value = item.id;
         document.getElementById('issueInput').value = item.description || '';
         document.getElementById('toolInput').value = item.tool_required || '';
@@ -103,18 +114,6 @@ export async function renderFacilityIssues(facility, contact = null) {
         document.getElementById('notesInput').value = item.notes || '';
         document.getElementById('modalTitle').innerText = "Edit Issue";
         document.getElementById('saveIssueBtn').innerText = "UPDATE INFO";
-
-        const imageContainer = document.getElementById('issue-image-container');
-        imageContainer.innerHTML = '';
-
-        if (facility && facility.id) {
-            document.getElementById('issue-image-section').style.display = 'block';
-            renderImageManagerSection(imageContainer, 'issue', item.id, { facility, title: 'Issue Photos' });
-        } else {
-            document.getElementById('issue-image-section').style.display = 'block';
-            imageContainer.innerHTML = '<div style="color:red;">Image setup missing facility information.</div>';
-        }
-
         document.getElementById('issueModal').style.display = 'flex';
     };
 
@@ -162,13 +161,12 @@ export async function renderFacilityIssues(facility, contact = null) {
             if (!id && savedItem) {
                 document.getElementById('issueId').value = savedItem.id;
 
-                if (facility && facility.id) {
-                    document.getElementById('issue-image-section').style.display = 'block';
-                    renderImageManagerSection(document.getElementById('issue-image-container'), 'issue', savedItem.id, { facility, title: 'Issue Photos' });
-                } else {
-                    document.getElementById('issue-image-section').style.display = 'block';
-                    document.getElementById('issue-image-container').innerHTML = '<div style="color:red;">Image setup missing facility information.</div>';
-                }
+                const facilityForImages = (facility && facility.id) 
+                    ? facility 
+                    : { id: savedItem.project_id, Name: savedItem.facility_name || 'Unknown Facility' };
+
+                document.getElementById('issue-image-section').style.display = 'block';
+                renderImageManagerSection(document.getElementById('issue-image-container'), 'issue', savedItem.id, { facility: facilityForImages, title: 'Issue Photos' });
 
                 document.getElementById('saveIssueBtn').innerText = "UPDATE INFO";
             } else {
