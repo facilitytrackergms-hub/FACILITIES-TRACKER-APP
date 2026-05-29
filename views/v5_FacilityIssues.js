@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-28 10:45:00 PM
+UPDATED: 2026-05-29 05:22:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -18,6 +18,8 @@ export async function renderFacilityIssues(data) {
         console.error("Facility object is missing or invalid");
         return;
     }
+
+    let activeFacilityContacts = [];
 
     const app = document.getElementById('app');
 
@@ -41,10 +43,14 @@ export async function renderFacilityIssues(data) {
                     <div id="issue-form-fields">
                         <label style="display:block;font-size:12px;font-weight:bold;color:#666;margin-top:15px;">ISSUE DESCRIPTION</label>
                         <input type="text" id="issueInput" style="width:100%;padding:12px;margin-top:5px;border:1px solid #ccc;border-radius:6px;" placeholder="What is the problem?">
+                        
                         <label style="display:block;font-size:12px;font-weight:bold;color:#666;margin-top:15px;">TOOL REQUIRED</label>
                         <input type="text" id="toolInput" style="width:100%;padding:12px;margin-top:5px;border:1px solid #ccc;border-radius:6px;" placeholder="e.g. Ladder, Drill">
+                        
                         <label style="display:block;font-size:12px;font-weight:bold;color:#666;margin-top:15px;">INITIATED BY</label>
-                        <input type="text" id="initiatedByInput" style="width:100%;padding:12px;margin-top:5px;border:1px solid #ccc;border-radius:6px;" placeholder="Your Name">
+                        <input type="text" id="initiatedByInput" list="contactsDatalist" style="width:100%;padding:12px;margin-top:5px;border:1px solid #ccc;border-radius:6px;" placeholder="Your Name or Select Contact">
+                        <datalist id="contactsDatalist"></datalist>
+
                         <label style="display:block;font-size:12px;font-weight:bold;color:#666;margin-top:15px;">NOTES</label>
                         <textarea id="notesInput" style="width:100%;padding:12px;margin-top:5px;border:1px solid #ccc;border-radius:6px;min-height:80px;" placeholder="Additional context..."></textarea>
                     </div>
@@ -62,10 +68,30 @@ export async function renderFacilityIssues(data) {
             </div>
             
             <div style="margin-top:40px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v5_FacilityIssues.js | Updated: 2026-05-28 10:45:00 PM
+                File: v5_FacilityIssues.js | Updated: 2026-05-29 05:22:00 AM
             </div>
         </div>
     `;
+
+    const loadFacilityContacts = async () => {
+        const { data: contactsData, error } = await supabase
+            .from('CONTACTS')
+            .select('*')
+            .eq('facility_id', facility.id);
+        
+        if (error) {
+            console.error("Error loading contacts for combo box:", error);
+            return;
+        }
+
+        activeFacilityContacts = contactsData || [];
+        const datalist = document.getElementById('contactsDatalist');
+        if (datalist) {
+            datalist.innerHTML = activeFacilityContacts
+                .map(c => `<option value="${c.name}"></option>`)
+                .join('');
+        }
+    };
 
     const loadIssues = async () => {
         const { data: dbData, error } = await supabase.from('FACILITY_ISSUES')
@@ -91,7 +117,8 @@ export async function renderFacilityIssues(data) {
         }
     };
 
-    window.editIssue = (item) => {
+    window.editIssue = async (item) => {
+        await loadFacilityContacts();
         document.getElementById('issueId').value = item.id;
         document.getElementById('issueInput').value = item.issue;
         document.getElementById('toolInput').value = item.tool_required;
@@ -106,7 +133,8 @@ export async function renderFacilityIssues(data) {
         document.getElementById('issueModal').style.display = 'flex';
     };
 
-    document.getElementById('createNewIssueBtn').onclick = () => {
+    document.getElementById('createNewIssueBtn').onclick = async () => {
+        await loadFacilityContacts();
         document.getElementById('issueId').value = '';
         document.getElementById('issueInput').value = '';
         document.getElementById('toolInput').value = '';
@@ -121,16 +149,40 @@ export async function renderFacilityIssues(data) {
 
     document.getElementById('saveIssueBtn').onclick = async () => {
         const id = document.getElementById('issueId').value;
+        const initiatedByName = document.getElementById('initiatedByInput').value.trim();
+
         const payload = {
             issue: document.getElementById('issueInput').value,
             tool_required: document.getElementById('toolInput').value,
-            initiated_by: document.getElementById('initiatedByInput').value,
+            initiated_by: initiatedByName,
             notes: document.getElementById('notesInput').value,
             facility_id: facility.id, 
             open_issue: true
         };
 
         if (!payload.issue) return alert("Please describe the issue.");
+
+        if (initiatedByName) {
+            const contactExists = activeFacilityContacts.some(
+                c => c.name.toLowerCase() === initiatedByName.toLowerCase()
+            );
+
+            if (!contactExists) {
+                const confirmAdd = confirm(`The initiator "${initiatedByName}" is not in your facility contacts list. Do you want to add them as a new contact?`);
+                if (confirmAdd) {
+                    const { error: contactError } = await supabase
+                        .from('CONTACTS')
+                        .insert([{ name: initiatedByName, facility_id: facility.id }]);
+                    
+                    if (contactError) {
+                        console.error("Error auto-creating new contact:", contactError);
+                        alert("Could not create new contact entry, but proceeding with issue save.");
+                    } else {
+                        await loadFacilityContacts();
+                    }
+                }
+            }
+        }
 
         let result;
         if (!id) {
