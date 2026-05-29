@@ -1,7 +1,7 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
 PURPOSE: Render Facility Contacts and Contact Detail View
-UPDATED: 2026-05-29 06:15:00 PM
+UPDATED: 2026-05-29 06:25:00 PM
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
@@ -54,11 +54,9 @@ export async function openContactDetail(contact, facility) {
                 contact_id: contact.id
             }
         };
-        
-        window.location.hash = `#facilityIssues?facilityId=${facility.id}&initiatedBy=${encodeURIComponent(contact.Name)}`;
-        window.dispatchEvent(new CustomEvent('navigate', { 
-            detail: { target: 'facilityIssues', data: issueData } 
-        }));
+        if (window.navigateTo) {
+            window.navigateTo('facilityIssues', issueData);
+        }
     };
 
     setTimeout(async () => {
@@ -130,7 +128,7 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 06:15:00 PM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 06:25:00 PM
             </div>
         </div>
     `;
@@ -218,9 +216,8 @@ export async function renderContacts(data) {
     document.getElementById('manualContactCloseBtn').onclick = () => document.getElementById('manualContactModal').style.display = 'none';
 
     document.getElementById('backBtn').onclick = () => {
-        if (facility?.id) {
-            window.location.hash = `#facilityControls?id=${facility.id}`;
-            window.dispatchEvent(new CustomEvent('navigate', { detail: { target: 'facilityControls', data: facility } }));
+        if (window.navigateTo) {
+            window.navigateTo('facilityControls', facility);
         } else {
             window.location.hash = `#dashboard`;
         }
