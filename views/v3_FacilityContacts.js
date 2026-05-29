@@ -1,7 +1,7 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
 PURPOSE: Render Facility Contacts and Contact Detail View
-UPDATED: 2026-05-29 05:15:00 PM
+UPDATED: 2026-05-29 05:25:00 PM
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
@@ -62,12 +62,13 @@ export async function openContactDetail(contact, facility) {
         }));
     };
 
-    // Increased timeout to 50ms and added safety check to fix "Not Found" error
+    // Increased timeout and corrected parameter order to fix "Not Found" error
     setTimeout(async () => {
         const managerContainer = document.getElementById('contactImageManagerContainer');
         
         if (managerContainer && typeof renderImageManagerSection === 'function') {
-            renderImageManagerSection('contact', contact.id, managerContainer);
+            // FIXED: Corrected parameter order (Container, Type, ID, Options)
+            renderImageManagerSection(managerContainer, 'contact', contact.id, { facility: facility });
         }
 
         const { data: images } = await supabase
@@ -143,7 +144,7 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 05:15:00 PM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 05:25:00 PM
             </div>
         </div>
     `;
