@@ -272,18 +272,12 @@ UPDATED: 2026-05-29 06:20:00 PM
 // ... (Keep all your existing code until you get to the backBtn logic)
 
     // THE BACK BUTTON LOGIC
-/* =================================================
-FILE: views/v3_FacilityContacts.js
-PURPOSE: Render Facility Contacts and Contact Detail View
-UPDATED: 2026-05-29 06:30:00 PM
-================================================= */
-
-// ... (Keep all your code from the top down to the backBtn logic)
-
     const backBtn = document.getElementById('backBtn');
     if (backBtn) {
         backBtn.onclick = (e) => {
             e.preventDefault();
+            
+            // 1. Try to go back to the specific facility
             const facilityId = facility?.id || facility?.facility_id;
             
             if (facilityId) {
@@ -293,6 +287,8 @@ UPDATED: 2026-05-29 06:30:00 PM
                     detail: { target: 'facilityControls', data: facility } 
                 }));
             } else {
+                // 2. Fallback to Dashboard if data is corrupted
+                console.warn("Facility ID missing, forcing dashboard.");
                 window.location.hash = `#dashboard`;
                 window.dispatchEvent(new CustomEvent('navigate', { 
                     detail: { target: 'dashboard', data: {} } 
@@ -301,8 +297,6 @@ UPDATED: 2026-05-29 06:30:00 PM
         };
     }
 
-    await loadContactsGridData();
-} // Closes renderContacts
     // Load the grid data
     await loadContactsGridData();
 } // <--- Added missing brace for renderContacts
