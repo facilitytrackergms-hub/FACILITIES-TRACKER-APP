@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 03:45:00 PM
+UPDATED: 2026-05-29 04:50:00 PM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -9,13 +9,9 @@ Always keep the header at the top of current files and new files.
 
 import { supabase } from '../js/supabaseClient.js';
 import { renderImageManagerSection } from '../js/imageManager.js';
-import { v4 as uuidv4 } from 'https://jspm.dev/uuid';
 
 export async function renderFacilityIssues(facility, contact = null) {
     const app = document.getElementById('app');
-
-    // In-memory queue for images uploaded before saving
-    const tempIssueImageQueue = {};
 
     app.innerHTML = `
         <div style="padding: 20px; font-family: Arial; background: #f3f4f6; min-height: 100vh; text-align: center;">
@@ -59,22 +55,13 @@ export async function renderFacilityIssues(facility, contact = null) {
         </div>
     `;
 
-    async function flushQueuedImages(issueId) {
-        const images = tempIssueImageQueue[issueId] || [];
-        for (const img of images) {
-            // Use your existing imageManager method to upload each image
-            await renderImageManagerSection.uploadImage(issueId, img);
-        }
-        delete tempIssueImageQueue[issueId];
-    }
-
     const loadIssues = async () => {
         if (!facility?.id) return;
         const { data, error } = await supabase.from('FACILITY_ISSUES')
             .select('*')
             .eq('facility_id', facility.id)
             .order('created_at', { ascending: false });
-        if (error) return console.error(error);
+        if (error) { console.error(error); return; }
 
         const list = document.getElementById('issuesList');
         list.innerHTML = data && data.length ? data.map(item => `
@@ -101,16 +88,13 @@ export async function renderFacilityIssues(facility, contact = null) {
         imageSection.style.display = 'block';
         imageContainer.innerHTML = '';
 
-        renderImageManagerSection(imageContainer, 'issue', item.id, { facility, title:'Issue Photos', tempQueue: tempIssueImageQueue });
+        renderImageManagerSection(imageContainer, 'issue', item.id, { facility, title:'Issue Photos' });
 
         document.getElementById('issueModal').style.display = 'flex';
     };
 
-    document.getElementById('createNewIssueBtn').onclick = () => {
-        const tempId = uuidv4();
-        tempIssueImageQueue[tempId] = [];
-
-        document.getElementById('issueId').value = tempId;
+    document.getElementById('createNewIssueBtn').onclick = async () => {
+        document.getElementById('issueId').value = '';
         document.getElementById('issueInput').value = '';
         document.getElementById('toolInput').value = '';
         document.getElementById('initiatedByInput').value = '';
@@ -118,12 +102,8 @@ export async function renderFacilityIssues(facility, contact = null) {
         document.getElementById('modalTitle').innerText = "Report Issue";
         document.getElementById('saveIssueBtn').innerText = "SAVE ISSUE";
 
-        const imageSection = document.getElementById('issue-image-section');
-        const imageContainer = document.getElementById('issue-image-container');
-        imageSection.style.display = 'block';
-        imageContainer.innerHTML = '';
-
-        renderImageManagerSection(imageContainer, 'issue', tempId, { facility, title:'Issue Photos', tempQueue: tempIssueImageQueue });
+        document.getElementById('issue-image-section').style.display = 'none';
+        document.getElementById('issue-image-container').innerHTML = '';
 
         document.getElementById('issueModal').style.display = 'flex';
     };
@@ -142,10 +122,11 @@ export async function renderFacilityIssues(facility, contact = null) {
         if (!payload.issue) return alert("Please describe the issue.");
 
         let result;
-        const isTemp = id.length === 36; // temporary UUID
-        if (isTemp) {
+        if (!id) {
+            // New issue: insert and get the real numeric ID
             result = await supabase.from('FACILITY_ISSUES').insert([payload]).select();
         } else {
+            // Existing issue: update
             result = await supabase.from('FACILITY_ISSUES').update(payload).eq('id', id).select();
         }
 
@@ -156,12 +137,9 @@ export async function renderFacilityIssues(facility, contact = null) {
             document.getElementById('issueId').value = savedItem.id;
             document.getElementById('saveIssueBtn').innerText = "UPDATE INFO";
 
-            if (isTemp && tempIssueImageQueue[id]?.length > 0) {
-                await flushQueuedImages(id);
-            }
-
             const imageContainer = document.getElementById('issue-image-container');
             imageContainer.innerHTML = '';
+            document.getElementById('issue-image-section').style.display = 'block';
             renderImageManagerSection(imageContainer, 'issue', savedItem.id, { facility, title:'Issue Photos' });
         }
     };
