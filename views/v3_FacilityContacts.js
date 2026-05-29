@@ -19,7 +19,6 @@ export async function renderContacts(data) {
     const facility = data?.facility ? data.facility : data;
     const initialContact = data?.contact ? data.contact : null;
 
-    // Handle deep linking to details immediately if a contact is pinned in the navigation context
     if (initialContact) {
         return openContactDetail(initialContact, facility);
     }
@@ -41,7 +40,6 @@ export async function renderContacts(data) {
 
     const contactsGrid = document.getElementById('contactsGrid');
 
-    // Fetch contacts and open issues count
     const { data: contacts, error: contactsError } = await supabase
         .from('CONTACTS')
         .select('*')
@@ -86,7 +84,7 @@ export async function renderContacts(data) {
     }
 
     document.getElementById('backBtn').onclick = () => {
-        if (window.navigateTo) window.navigateTo('facilityControls', facility);
+        if (window.navigateTo) window.navigateTo('facilityControls', { facility });
     };
 }
 
