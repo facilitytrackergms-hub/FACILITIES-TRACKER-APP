@@ -274,8 +274,8 @@ if (backBtn) {
             window.location.hash = `#dashboard`;
         }
     };
-}   };
-    }
+}   
+    
 
     await loadContactsGridData();
 }
