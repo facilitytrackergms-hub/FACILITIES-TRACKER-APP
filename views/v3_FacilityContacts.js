@@ -1,11 +1,15 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
-PURPOSE: Render Facility Contacts and Contact Detail View
-UPDATED: 2026-05-29 06:25:00 PM
+PURPOSE: Render Facility Contacts, Contact Grid, and Modals (Consolidated)
+UPDATED: 2026-05-29 07:45:00 PM
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
 
+/**
+ * RENDER: Contact Detail View
+ * Shows full info for a specific person
+ */
 export async function openContactDetail(contact, facility) {
     const app = document.getElementById('app');
     if (!app) return;
@@ -59,6 +63,7 @@ export async function openContactDetail(contact, facility) {
         }
     };
 
+    // Lazy load avatar image
     setTimeout(async () => {
         const { data: images } = await supabase
             .from('FACILITY_IMAGES')
@@ -78,6 +83,10 @@ export async function openContactDetail(contact, facility) {
     }, 50); 
 }
 
+/**
+ * MAIN RENDER: Contacts List
+ * Primary entry point for the view
+ */
 export async function renderContacts(data) {
     const app = document.getElementById('app');
     if (!app) return;
@@ -85,6 +94,7 @@ export async function renderContacts(data) {
     const facility = data?.facility ? data.facility : data;
     const initialContact = data?.contact ? data.contact : null;
 
+    // Direct routing to detail if contact is provided
     if (initialContact) {
         return openContactDetail(initialContact, facility);
     }
@@ -99,7 +109,9 @@ export async function renderContacts(data) {
                 <button id="backBtn" style="padding:14px 20px; border:none; border-radius:8px; background:#00264d; color:white; font-weight:bold; cursor:pointer;">BACK TO CONTROLS</button>
             </div>
 
-            <div id="contactsGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:15px;"></div>
+            <div id="contactsGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:15px;">
+                <div style="grid-column: 1/-1; padding:40px; color:#666;">Loading Contacts...</div>
+            </div>
 
             <div id="manualContactModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000; justify-content:center; align-items:center; padding:20px;">
                 <div style="background:white; padding:25px; border-radius:12px; width:100%; max-width:420px; text-align:left; max-height:90vh; overflow-y:auto; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
@@ -128,68 +140,80 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 06:25:00 PM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 07:45:00 PM
             </div>
         </div>
     `;
 
     const contactsGrid = document.getElementById('contactsGrid');
 
+    // Internal function to load and map data
     const loadContactsGridData = async () => {
-        contactsGrid.innerHTML = '';
-        const { data: contacts } = await supabase.from('CONTACTS').select('*').eq('facility_id', facility?.id);
-        const { data: openIssues } = await supabase.from('FACILITY_ISSUES').select('id, initiated_by').eq('open_issue', true).eq('facility_id', facility?.id);
-        const { data: allImages } = await supabase.from('FACILITY_IMAGES').select('*').eq('related_type', 'contact');
+        contactsGrid.innerHTML = '<div style="grid-column: 1/-1; padding:40px; color:#666;">Refreshing List...</div>';
+        
+        try {
+            const { data: contacts } = await supabase.from('CONTACTS').select('*').eq('facility_id', facility?.id);
+            const { data: openIssues } = await supabase.from('FACILITY_ISSUES').select('id, initiated_by').eq('open_issue', true).eq('facility_id', facility?.id);
+            const { data: allImages } = await supabase.from('FACILITY_IMAGES').select('*').eq('related_type', 'contact');
 
-        const imageMap = {};
-        if (allImages) {
-            allImages.forEach(img => {
-                if (!imageMap[img.related_id] || new Date(img.created_at) > new Date(imageMap[img.related_id].created_at)) {
-                    imageMap[img.related_id] = img;
-                }
-            });
-        }
+            // Map images to contacts
+            const imageMap = {};
+            if (allImages) {
+                allImages.forEach(img => {
+                    if (!imageMap[img.related_id] || new Date(img.created_at) > new Date(imageMap[img.related_id].created_at)) {
+                        imageMap[img.related_id] = img;
+                    }
+                });
+            }
 
-        const issuesCountMap = {};
-        if (openIssues) {
-            openIssues.forEach(issue => {
-                if (issue.initiated_by) {
-                    const normKey = issue.initiated_by.toLowerCase().trim();
-                    issuesCountMap[normKey] = (issuesCountMap[normKey] || 0) + 1;
-                }
-            });
-        }
+            // Map issue counts to names
+            const issuesCountMap = {};
+            if (openIssues) {
+                openIssues.forEach(issue => {
+                    if (issue.initiated_by) {
+                        const normKey = issue.initiated_by.toLowerCase().trim();
+                        issuesCountMap[normKey] = (issuesCountMap[normKey] || 0) + 1;
+                    }
+                });
+            }
 
-        if (contacts && contacts.length > 0) {
-            contacts.forEach(contact => {
-                const btn = document.createElement('button');
-                btn.style.cssText = "padding:16px; border-radius:12px; background:#f5c400; border:none; cursor:pointer; font-weight:bold; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;";
-                
-                const nameDisplay = contact.Name || 'Unnamed';
-                const roleDisplay = contact.Role || '';
-                const pendingCount = issuesCountMap[nameDisplay.toLowerCase().trim()] || 0;
-                const contactImg = imageMap[contact.id];
+            contactsGrid.innerHTML = ''; // Clear loading
 
-                const avatarHtml = contactImg && contactImg.image_url 
-                    ? `<img src="${contactImg.image_url}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.15);" alt="">`
-                    : `<div style="width:50px; height:50px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.15);">${nameDisplay.charAt(0).toUpperCase()}</div>`;
+            if (contacts && contacts.length > 0) {
+                contacts.forEach(contact => {
+                    const btn = document.createElement('button');
+                    btn.style.cssText = "padding:16px; border-radius:12px; background:#f5c400; border:none; cursor:pointer; font-weight:bold; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; transition: transform 0.1s;";
+                    
+                    const nameDisplay = contact.Name || 'Unnamed';
+                    const roleDisplay = contact.Role || '';
+                    const pendingCount = issuesCountMap[nameDisplay.toLowerCase().trim()] || 0;
+                    const contactImg = imageMap[contact.id];
 
-                btn.innerHTML = `
-                    ${avatarHtml}
-                    <div style="text-align:center; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                        <span style="color:#00264d; display:block;">${nameDisplay}</span>
-                        <span style="font-size:12px; font-weight:normal; color:#1e293b; display:block;">${roleDisplay}</span>
-                    </div>
-                    ${pendingCount ? `<span style="position:absolute; top:6px; right:6px; background:#dc2626; color:white; font-size:10px; padding:2px 6px; border-radius:8px;">${pendingCount}</span>` : ''}
-                `;
-                btn.onclick = () => openContactDetail(contact, facility);
-                contactsGrid.appendChild(btn);
-            });
-        } else {
-            contactsGrid.innerHTML = `<div style="grid-column:1/-1; color:#94a3b8; font-style:italic; padding:20px;">No contacts found.</div>`;
+                    const avatarHtml = contactImg && contactImg.image_url 
+                        ? `<img src="${contactImg.image_url}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.15);" alt="">`
+                        : `<div style="width:50px; height:50px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.15);">${nameDisplay.charAt(0).toUpperCase()}</div>`;
+
+                    btn.innerHTML = `
+                        ${avatarHtml}
+                        <div style="text-align:center; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            <span style="color:#00264d; display:block;">${nameDisplay}</span>
+                            <span style="font-size:12px; font-weight:normal; color:#1e293b; display:block;">${roleDisplay}</span>
+                        </div>
+                        ${pendingCount ? `<span style="position:absolute; top:6px; right:6px; background:#dc2626; color:white; font-size:10px; padding:2px 6px; border-radius:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${pendingCount}</span>` : ''}
+                    `;
+                    btn.onclick = () => openContactDetail(contact, facility);
+                    contactsGrid.appendChild(btn);
+                });
+            } else {
+                contactsGrid.innerHTML = `<div style="grid-column:1/-1; color:#94a3b8; font-style:italic; padding:40px; background:white; border-radius:12px;">No contacts found for this facility.</div>`;
+            }
+        } catch (err) {
+            console.error("Error loading contacts:", err);
+            contactsGrid.innerHTML = `<div style="grid-column:1/-1; color:red; padding:20px;">Failed to load contacts.</div>`;
         }
     };
 
+    // Modal Logic
     document.getElementById('addManualContactBtn').onclick = () => {
         document.getElementById('modalTitle').innerText = "New Contact Profile";
         ['manualContactName', 'manualContactRole', 'manualContactPhone', 'manualContactEmail', 'manualContactNotes'].forEach(id => document.getElementById(id).value = '');
@@ -200,6 +224,7 @@ export async function renderContacts(data) {
     document.getElementById('manualContactSaveBtn').onclick = async () => {
         const name = document.getElementById('manualContactName').value;
         if (!name) return alert('Name is required');
+        
         const contactData = { 
             Name: name, 
             Role: document.getElementById('manualContactRole').value, 
@@ -208,9 +233,15 @@ export async function renderContacts(data) {
             Notes: document.getElementById('manualContactNotes').value, 
             facility_id: facility.id 
         };
-        await supabase.from('CONTACTS').insert([contactData]);
-        document.getElementById('manualContactModal').style.display = 'none';
-        await loadContactsGridData();
+
+        const { error } = await supabase.from('CONTACTS').insert([contactData]);
+        
+        if (error) {
+            alert("Error saving contact: " + error.message);
+        } else {
+            document.getElementById('manualContactModal').style.display = 'none';
+            await loadContactsGridData();
+        }
     };
 
     document.getElementById('manualContactCloseBtn').onclick = () => document.getElementById('manualContactModal').style.display = 'none';
@@ -223,5 +254,6 @@ export async function renderContacts(data) {
         }
     };
 
+    // Initial Load
     await loadContactsGridData();
 }
