@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 05:30:00 AM
+UPDATED: 2026-05-29 05:40:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -68,7 +68,7 @@ export async function renderFacilityIssues(data) {
             </div>
             
             <div style="margin-top:40px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v5_FacilityIssues.js | Updated: 2026-05-29 05:30:00 AM
+                File: v5_FacilityIssues.js | Updated: 2026-05-29 05:40:00 AM
             </div>
         </div>
     `;
@@ -88,10 +88,7 @@ export async function renderFacilityIssues(data) {
         const datalist = document.getElementById('contactsDatalist');
         if (datalist) {
             datalist.innerHTML = activeFacilityContacts
-                .map(c => {
-                    const nameVal = c.name || c.Name || '';
-                    return `<option value="${nameVal}"></option>`;
-                })
+                .map(c => `<option value="${c.Name || ''}"></option>`)
                 .join('');
         }
     };
@@ -141,8 +138,7 @@ export async function renderFacilityIssues(data) {
         document.getElementById('issueId').value = '';
         document.getElementById('issueInput').value = '';
         document.getElementById('toolInput').value = '';
-        const defaultName = contact ? (contact.name || contact.Name || '') : '';
-        document.getElementById('initiatedByInput').value = defaultName;
+        document.getElementById('initiatedByInput').value = contact ? (contact.Name || contact.name || '') : '';
         document.getElementById('notesInput').value = '';
         document.getElementById('modalTitle').innerText = "Report Issue";
         document.getElementById('saveIssueBtn').innerText = "SAVE ISSUE";
@@ -167,28 +163,20 @@ export async function renderFacilityIssues(data) {
         if (!payload.issue) return alert("Please describe the issue.");
 
         if (initiatedByName) {
-            const contactExists = activeFacilityContacts.some(c => {
-                const currentName = c.name || c.Name || '';
-                return currentName.toLowerCase() === initiatedByName.toLowerCase();
-            });
+            const contactExists = activeFacilityContacts.some(
+                c => (c.Name || '').toLowerCase() === initiatedByName.toLowerCase()
+            );
 
             if (!contactExists) {
                 const confirmAdd = confirm(`The initiator "${initiatedByName}" is not in your facility contacts list. Do you want to add them as a new contact?`);
                 if (confirmAdd) {
-                    // Send both lowercase and uppercase variations to stay completely safe against schema cache configurations
-                    const newContactPayload = {
-                        name: initiatedByName,
-                        Name: initiatedByName,
-                        facility_id: facility.id
-                    };
-
                     const { error: contactError } = await supabase
                         .from('CONTACTS')
-                        .insert([newContactPayload]);
+                        .insert([{ Name: initiatedByName, facility_id: facility.id }]);
                     
                     if (contactError) {
                         console.error("Error auto-creating new contact:", contactError);
-                        alert("Could not create new contact entry due to server cache, but proceeding with issue save.");
+                        alert("Could not create new contact entry, but proceeding with issue save.");
                     } else {
                         await loadFacilityContacts();
                     }
