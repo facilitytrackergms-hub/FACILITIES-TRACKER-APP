@@ -1,7 +1,11 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
-PURPOSE: Render Facility Contacts and Contact Detail View with avatar on top
+PURPOSE: Render Facility Contacts and Contact Detail View with Clean Direct Routing
 UPDATED: 2026-05-29 02:05:12 PM
+
+STRICT HEADER RULE:
+Do not ever remove or change this header section.
+Always keep this header at the top of current files and new files.
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
@@ -290,4 +294,79 @@ async function openContactDetail(contact, facility) {
                 <div style="display:flex; gap:10px; width:100%;">
                     <button id="directIssuesPageBtn" style="flex:1; padding:14px; background:${statusColor}; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; position:relative; line-height:1.2; font-size:13px;">
                         SEE RELATED ISSUES 
-                        ${issueCount > 0 ? `<span style="background:red; font-size:11px; color:white; border-radius:50%; padding:2px 7px; margin-left:4px; font-weight:bold; display:inline-block; vertical-align:middle;">${issue
+                        ${issueCount > 0 ? `<span style="background:red; font-size:11px; color:white; border-radius:50%; padding:2px 7px; margin-left:4px; font-weight:bold; display:inline-block; vertical-align:middle;">${issueCount}</span>` : ''}
+                    </button>
+                    <button id="editContactBtn" style="flex:1; padding:14px; background:#f5c400; color:#00264d; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;">
+                        ✏️ EDIT INFO
+                    </button>
+                </div>
+                <button id="backBtn" style="width:100%; padding:14px; background:#00264d; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-size:13px;">
+                    BACK TO CONTACTS LIST
+                </button>
+            </div>
+
+            <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:05:12 PM
+            </div>
+        </div>
+    `;
+
+    const imageMount = document.getElementById('contactImageManager');
+    if (imageMount) {
+        renderImageManagerSection(imageMount, 'contact', contact.id, { title: 'Upload Avatar Profile Picture', facility });
+    }
+
+    document.getElementById('directIssuesPageBtn').onclick = () => {
+        window.navigateTo('facilityIssues', { facility, contact });
+    };
+
+    document.getElementById('editContactBtn').onclick = () => {
+        document.getElementById('modalTitle').innerText = `Edit ${contactName}`;
+        document.getElementById('manualContactName').value = contactName;
+        document.getElementById('manualContactRole').value = contactRole;
+        document.getElementById('manualContactPhone').value = contactPhone;
+        document.getElementById('manualContactEmail').value = contactEmail;
+        document.getElementById('manualContactNotes').value = contact.Notes || '';
+        
+        document.getElementById('manualContactImageSection').style.display = 'block';
+        renderImageManagerSection(
+            document.getElementById('manualContactImageContainer'),
+            'contact',
+            contact.id,
+            { title: 'Contact Pictures', facility }
+        );
+
+        const modalInstance = document.getElementById('manualContactModal');
+        if (modalInstance) {
+            modalInstance.style.display = 'flex';
+            const saveBtn = document.getElementById('manualContactSaveBtn');
+            saveBtn.innerText = "UPDATE DETAILS";
+            
+            saveBtn.onclick = async () => {
+                const nameVal = document.getElementById('manualContactName').value.trim();
+                if (!nameVal) {
+                    alert("Name is required.");
+                    return;
+                }
+                const payload = {
+                    Name: nameVal,
+                    Role: document.getElementById('manualContactRole').value.trim(),
+                    Phone: document.getElementById('manualContactPhone').value.trim(),
+                    Email: document.getElementById('manualContactEmail').value.trim(),
+                    Notes: document.getElementById('manualContactNotes').value.trim()
+                };
+                const { error } = await supabase.from('CONTACTS').update(payload).eq('id', contact.id);
+                if (error) {
+                    alert('Error updating contact');
+                } else {
+                    modalInstance.style.display = 'none';
+                    openContactDetail({...contact, ...payload}, facility);
+                }
+            };
+        }
+    };
+
+    document.getElementById('backBtn').onclick = () => {
+        window.navigateTo('facilityContacts', { facility });
+    };
+}
