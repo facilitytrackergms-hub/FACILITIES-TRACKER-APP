@@ -1,7 +1,7 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
-PURPOSE: Render Facility Contacts and Contact Detail View with avatar on top
-UPDATED: 2026-05-29 02:48:10 PM
+PURPOSE: Render Facility Contacts and Contact Detail View with clickable phone/email links
+UPDATED: 2026-05-29 02:50:33 PM
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
@@ -10,6 +10,15 @@ import { renderImageManagerSection } from '../js/imageManager.js';
 export async function openContactDetail(contact, facility) {
     const app = document.getElementById('app');
     if (!app) return;
+
+    // Generate link elements dynamically if data exists
+    const phoneLink = contact.Phone 
+        ? `<a href="tel:${contact.Phone.replace(/[^0-9+]/g, '')}" style="color:#00264d; text-decoration:underline; font-weight:bold;">${contact.Phone}</a>` 
+        : 'N/A';
+        
+    const emailLink = contact.Email 
+        ? `<a href="mailto:${contact.Email}" style="color:#00264d; text-decoration:underline; font-weight:bold;">${contact.Email}</a>` 
+        : 'N/A';
 
     // 1. Immediately inject HTML so elements exist in the DOM tree right away
     app.innerHTML = `
@@ -23,8 +32,8 @@ export async function openContactDetail(contact, facility) {
 
                 <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
 
-                <div style="margin-bottom:12px;"><strong>Phone:</strong> ${contact.Phone || 'N/A'}</div>
-                <div style="margin-bottom:12px;"><strong>Email:</strong> ${contact.Email || 'N/A'}</div>
+                <div style="margin-bottom:12px;"><strong>Phone:</strong> ${phoneLink}</div>
+                <div style="margin-bottom:12px;"><strong>Email:</strong> ${emailLink}</div>
                 <div style="margin-bottom:20px;"><strong>Notes:</strong> ${contact.Notes || 'None'}</div>
 
                 <div id="contactImageManagerContainer" style="margin-top:20px; border-top:1px solid #eee; padding-top:20px;"></div>
@@ -119,7 +128,7 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:48:10 PM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:50:33 PM
             </div>
         </div>
     `;
