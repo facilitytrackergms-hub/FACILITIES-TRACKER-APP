@@ -1,6 +1,7 @@
 /* =================================================
 FILE: views/v4_pendingProjects.js
-UPDATED: 2026-05-28 08:30:00 PM
+PURPOSE: Render Dynamic Active Project Trackers from Supabase matched via Structured Payloads
+UPDATED: 2026-05-28 08:45:00 PM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -9,10 +10,13 @@ Always keep this header at the top of current files and new files.
 
 import { supabase } from '../js/supabaseClient.js';
 
-export async function renderPendingProjects(facility, contact = null) {
+export async function renderPendingProjects(data) {
     const app = document.getElementById('app');
     
-    // Safety check fallback to avoid app crashes if data missing
+    // Safety check parsing unified framework payload container
+    const facility = data?.facility ? data.facility : data;
+    const contact = data?.contact ? data.contact : null;
+
     const facilityName = facility?.Name || 'Unknown Facility';
     const facilityId = facility?.id || null;
 
@@ -37,12 +41,12 @@ export async function renderPendingProjects(facility, contact = null) {
             </div>
             
             <div style="margin-top: 40px; font-size: 10px; color: #94a3b8; border-top: 1px solid #e5e7eb; padding-top: 10px;">
-                File: v4_pendingProjects.js | Updated: 2026-05-28 08:30:00 PM
+                File: v4_pendingProjects.js | Updated: 2026-05-28 08:45:00 PM
             </div>
         </div>
     `;
 
-    // Fetch and show actual active open items matching this facility
+    // Fetch and show actual active open items matching this facility from the database
     const loadPendingItems = async () => {
         const listDiv = document.getElementById('pendingProjectsList');
         if (!facilityId) {
@@ -50,7 +54,7 @@ export async function renderPendingProjects(facility, contact = null) {
             return;
         }
 
-        const { data, error } = await supabase
+        const { data: issues, error } = await supabase
             .from('FACILITY_PROJECT_ISSUES')
             .select('*')
             .eq('project_id', facilityId)
@@ -63,10 +67,10 @@ export async function renderPendingProjects(facility, contact = null) {
             return;
         }
 
-        if (data && data.length > 0) {
-            listDiv.innerHTML = data.map(item => `
+        if (issues && issues.length > 0) {
+            listDiv.innerHTML = issues.map(item => `
                 <div style="background: white; padding: 15px; border-radius: 10px; border-left: 5px solid #dc3545; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05);" 
-                     onclick="window.navigateTo('facilityIssues', { facility: ${JSON.stringify(facility).replace(/"/g, '&quot;')}, contact: ${contact ? JSON.stringify(contact).replace(/"/g, '&quot;') : 'null'} })">
+                     id="issue-card-${item.id}">
                     <div style="display: flex; justify-content: space-between;">
                         <strong style="color: #00264d;">${item.description}</strong>
                         <span style="font-size: 10px; color: #94a3b8;">${new Date(item.created_at).toLocaleDateString()}</span>
@@ -74,6 +78,16 @@ export async function renderPendingProjects(facility, contact = null) {
                     <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Tool: ${item.tool_required || 'None required'}</div>
                 </div>
             `).join('');
+
+            // Bind contextual routing variables safely to prevent template literal compilation breaks
+            issues.forEach(item => {
+                const card = document.getElementById(`issue-card-${item.id}`);
+                if (card) {
+                    card.onclick = () => {
+                        window.navigateTo('facilityIssues', { facility, contact });
+                    };
+                }
+            });
         } else {
             listDiv.innerHTML = '<div style="text-align: center; color: #94a3b8; font-style: italic;">No pending active issues found.</div>';
         }
@@ -93,5 +107,5 @@ export async function renderPendingProjects(facility, contact = null) {
     };
 
     // Run item load query
-    loadPendingItems();
+    await loadPendingItems();
 }
