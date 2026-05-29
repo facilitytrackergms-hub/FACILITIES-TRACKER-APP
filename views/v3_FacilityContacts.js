@@ -1,7 +1,7 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
-PURPOSE: Render Facility Contacts and Contact Detail View with Unified Payload Routing
-UPDATED: 2026-05-29 06:30:00 AM
+PURPOSE: Render Facility Contacts and Contact Detail View with Clean Direct Routing
+UPDATED: 2026-05-29 06:40:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -15,7 +15,6 @@ export async function renderContacts(data) {
     const app = document.getElementById('app');
     if (!app) return;
 
-    // Unpack unified payload container or fallback
     const facility = data?.facility ? data.facility : data;
     const initialContact = data?.contact ? data.contact : null;
 
@@ -30,11 +29,12 @@ export async function renderContacts(data) {
             
             <div style="margin-bottom:25px; display:flex; gap:10px; justify-content:center;">
                 <button id="addManualContactBtn" style="padding:14px 20px; border:none; border-radius:8px; background:#28a745; color:white; font-weight:bold; cursor:pointer;">+ ADD NEW CONTACT</button>
-                <button id="backBtn" style="padding:14px 20px; border:none; border-radius:8px; background:#00264d; color:white; cursor:pointer;">BACK TO FACILITY</button>
+                <button id="backBtn" style="padding:14px 20px; border:none; border-radius:8px; background:#00264d; color:white; cursor:pointer;">BACK TO DASHBOARD</button>
             </div>
 
             <div id="contactsGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:15px;"></div>
 
+            <!-- MANUAL CONTACT ADD MODAL OVERLAY -->
             <div id="manualContactModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000; justify-content:center; align-items:center; padding:20px;">
                 <div style="background:white; padding:25px; border-radius:12px; width:100%; max-width:420px; text-align:left; max-height:90vh; overflow-y:auto; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
                     <h3 style="margin-top:0; color:#00264d; border-bottom:2px solid #f5c400; padding-bottom:10px;">New Contact Profile</h3>
@@ -67,7 +67,7 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 06:30:00 AM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 06:40:00 AM
             </div>
         </div>
     `;
@@ -202,7 +202,7 @@ export async function renderContacts(data) {
     };
 
     document.getElementById('backBtn').onclick = () => {
-        if (window.navigateTo) window.navigateTo('facilityControls', { facility });
+        if (window.navigateTo) window.navigateTo('facilitiesDashboard');
     };
 
     await loadContactsGridData();
@@ -232,8 +232,7 @@ async function openContactDetail(contact, facility) {
 
             <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:25px; max-width:450px; margin-left:auto; margin-right:auto;">
                 <button id="directReportIssueBtn" style="flex:1; padding:14px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">+ REPORT AN ISSUE</button>
-                <button id="addIssueBtn" style="flex:1; padding:14px; background:#00264d; color:white; border:none; border-radius:8px; cursor:pointer;">MANAGE PROJECTS</button>
-                <button id="backBtn" style="width:100%; padding:12px; background:#6b7280; color:white; border:none; border-radius:8px; cursor:pointer;">BACK TO CONTACTS</button>
+                <button id="backBtn" style="flex:1; padding:14px; background:#6b7280; color:white; border:none; border-radius:8px; cursor:pointer;">BACK TO LIST</button>
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
@@ -251,12 +250,7 @@ async function openContactDetail(contact, facility) {
         window.navigateTo('facilityContacts', { facility });
     };
 
-    document.getElementById('addIssueBtn').onclick = () => {
-        window.navigateTo('pendingProjects', { facility, contact });
-    };
-
     document.getElementById('directReportIssueBtn').onclick = () => {
-        // Navigates straight to issues view and hands down active contact payload context natively
         window.navigateTo('facilityIssues', { facility, contact });
     };
 }
