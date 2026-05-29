@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v2_facilityControls.js
-UPDATED: 2026-05-29 08:50:00 AM
+UPDATED: 2026-05-29 09:45:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -32,9 +32,8 @@ export async function renderFacilityControls(facility) {
     if (!app) return;
 
     // Ensure window.navigateTo exists as a fallback
-    window.navigateTo = window.navigateTo || function(view, facility) {
-        console.log('Navigate to (fallback):', view, facility);
-        alert(`Maps to: ${view}`);
+    window.navigateTo = window.navigateTo || function(view, data) {
+        console.log('Navigate to (fallback):', view, data);
     };
 
     app.innerHTML = `
@@ -81,6 +80,7 @@ export async function renderFacilityControls(facility) {
     `;
 
     async function loadBadges() {
+        // Prevent 400 Bad Request if ID is missing
         if (!facility?.id) return;
 
         const { data: openIssues, error } = await supabase
@@ -90,7 +90,7 @@ export async function renderFacilityControls(facility) {
             .eq('project_id', facility.id);
 
         if (error) {
-            console.error("Error loading badges:", error);
+            console.error("Error fetching badges:", error);
             return;
         }
 
@@ -98,6 +98,7 @@ export async function renderFacilityControls(facility) {
         const projectBadge = document.getElementById('projectBadge');
         if (!contactBadge || !projectBadge) return;
 
+        // Ensure openIssues is an array before mapping
         const safeIssues = openIssues || [];
         const openContacts = new Set(safeIssues.map(i => i.contact_id).filter(id => id));
         
@@ -108,14 +109,13 @@ export async function renderFacilityControls(facility) {
         projectBadge.textContent = safeIssues.length;
     }
 
-    // Initial Load
     await loadBadges();
 
-    // --- Supabase Real-time Subscription ---
+    // --- Managed Real-time Subscription ---
     let controlsChannel = null;
     if (facility?.id) {
-        // Clean up any existing channel with this name to prevent the "after subscribe" error
         const channelName = `facility_controls_${facility.id}`;
+        // Clean existing channels to prevent subscription errors
         supabase.removeChannel(supabase.channel(channelName));
 
         controlsChannel = supabase
@@ -128,35 +128,22 @@ export async function renderFacilityControls(facility) {
                     table: 'FACILITY_PROJECT_ISSUES', 
                     filter: `project_id=eq.${facility.id}` 
                 },
-                (payload) => {
-                    console.log('Realtime update received:', payload);
-                    loadBadges();
-                }
+                () => loadBadges()
             )
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    console.log('Successfully subscribed to facility issues');
-                }
-            });
+            .subscribe();
     }
 
-    document.getElementById('toContacts').onclick = () => {
+    // Function to cleanup subscription before navigating
+    const navigateWithCleanup = (target) => {
         if (controlsChannel) supabase.removeChannel(controlsChannel);
-        window.navigateTo('facilityContacts', facility);
+        window.navigateTo(target, facility);
     };
-    document.getElementById('toProjects').onclick = () => {
-        if (controlsChannel) supabase.removeChannel(controlsChannel);
-        window.navigateTo('pendingProjects', facility);
-    };
-    document.getElementById('toGallery').onclick = () => {
-        if (controlsChannel) supabase.removeChannel(controlsChannel);
-        window.navigateTo('facilityImages', facility);
-    };
-    document.getElementById('backDash').onclick = () => {
-        if (controlsChannel) supabase.removeChannel(controlsChannel);
-        window.navigateTo('dashboard', facility);
-    };
+
+    document.getElementById('toContacts').onclick = () => navigateWithCleanup('facilityContacts');
+    document.getElementById('toProjects').onclick = () => navigateWithCleanup('pendingProjects');
+    document.getElementById('toGallery').onclick = () => navigateWithCleanup('facilityImages');
+    document.getElementById('backDash').onclick = () => navigateWithCleanup('dashboard');
 }
 
 // --- VER TAG ---
-console.log("Updated: 2026-05-29 08:50 AM • v2_facilityControls.js");
+console.log("Updated: 2026-05-29 09:45 AM • v2_facilityControls.js");
