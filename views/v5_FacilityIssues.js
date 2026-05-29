@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 05:45:00 AM
+UPDATED: 2026-05-29 05:55:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -20,7 +20,6 @@ export async function renderFacilityIssues(data) {
     }
 
     let activeFacilityContacts = [];
-    let pendingContactSaveResolver = null;
 
     const app = document.getElementById('app');
 
@@ -79,9 +78,35 @@ export async function renderFacilityIssues(data) {
                     </div>
                 </div>
             </div>
+
+            <div id="quickContactModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2500;justify-content:center;align-items:center;padding:20px;">
+                <div style="background:white;padding:25px;border-radius:12px;width:100%;max-width:420px;text-align:left;box-shadow:0 4px 15px rgba(0,0,0,0.3);">
+                    <h3 style="margin-top:0;color:#00264d;border-bottom:2px solid #f5c400;padding-bottom:10px;">Add Contact Details</h3>
+                    
+                    <label style="display:block;font-size:12px;font-weight:bold;color:#666;margin-top:15px;">NAME</label>
+                    <input type="text" id="quickContactName" style="width:100%;padding:10px;margin-top:5px;border:1px solid #ccc;border-radius:6px;background:#f3f4f6;" readonly>
+                    
+                    <label style="display:block;font-size:12px;font-weight:bold;color:#666;margin-top:15px;">ROLE</label>
+                    <input type="text" id="quickContactRole" style="width:100%;padding:10px;margin-top:5px;border:1px solid #ccc;border-radius:6px;" placeholder="e.g. Tenant, Driver, Owner">
+                    
+                    <label style="display:block;font-size:12px;font-weight:bold;color:#666;margin-top:15px;">PHONE</label>
+                    <input type="text" id="quickContactPhone" style="width:100%;padding:10px;margin-top:5px;border:1px solid #ccc;border-radius:6px;" placeholder="Phone Number">
+                    
+                    <label style="display:block;font-size:12px;font-weight:bold;color:#666;margin-top:15px;">EMAIL</label>
+                    <input type="email" id="quickContactEmail" style="width:100%;padding:10px;margin-top:5px;border:1px solid #ccc;border-radius:6px;" placeholder="Email Address">
+                    
+                    <label style="display:block;font-size:12px;font-weight:bold;color:#666;margin-top:15px;">NOTES</label>
+                    <textarea id="quickContactNotes" style="width:100%;padding:10px;margin-top:5px;border:1px solid #ccc;border-radius:6px;min-height:60px;" placeholder="Extra notes..."></textarea>
+                    
+                    <div style="display:flex;gap:10px;margin-top:25px;">
+                        <button id="quickContactSaveBtn" style="flex:1;padding:12px;background:#28a745;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:bold;">SAVE CONTACT</button>
+                        <button id="quickContactCancelBtn" style="flex:1;padding:12px;background:#eee;color:#333;border:none;border-radius:8px;cursor:pointer;">SKIP DETAILS</button>
+                    </div>
+                </div>
+            </div>
             
             <div style="margin-top:40px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v5_FacilityIssues.js | Updated: 2026-05-29 05:45:00 AM
+                File: v5_FacilityIssues.js | Updated: 2026-05-29 05:55:00 AM
             </div>
         </div>
     `;
@@ -119,6 +144,44 @@ export async function renderFacilityIssues(data) {
             document.getElementById('customDialogCancelBtn').onclick = () => {
                 document.getElementById('customDialogModal').style.display = 'none';
                 resolve(false);
+            };
+        });
+    };
+
+    const promptForContactDetails = (targetName) => {
+        document.getElementById('quickContactName').value = targetName;
+        document.getElementById('quickContactRole').value = '';
+        document.getElementById('quickContactPhone').value = '';
+        document.getElementById('quickContactEmail').value = '';
+        document.getElementById('quickContactNotes').value = '';
+        document.getElementById('quickContactModal').style.display = 'flex';
+
+        return new Promise((resolve) => {
+            document.getElementById('quickContactSaveBtn').onclick = async () => {
+                const contactPayload = {
+                    Name: targetName,
+                    Role: document.getElementById('quickContactRole').value.trim(),
+                    Phone: document.getElementById('quickContactPhone').value.trim(),
+                    Email: document.getElementById('quickContactEmail').value.trim(),
+                    Notes: document.getElementById('quickContactNotes').value.trim(),
+                    facility_id: facility.id
+                };
+
+                const { error: insertErr } = await supabase.from('CONTACTS').insert([contactPayload]);
+                if (insertErr) {
+                    console.error(insertErr);
+                    await showCustomAlert("Sync Error", "Failed to save the additional contact fields.", "❌");
+                }
+                document.getElementById('quickContactModal').style.display = 'none';
+                resolve(true);
+            };
+
+            document.getElementById('quickContactCancelBtn').onclick = async () => {
+                // User chose to skip entering full profile data but we still record basic name row matching
+                const basicPayload = { Name: targetName, facility_id: facility.id };
+                await supabase.from('CONTACTS').insert([basicPayload]);
+                document.getElementById('quickContactModal').style.display = 'none';
+                resolve(true);
             };
         });
     };
@@ -228,16 +291,8 @@ export async function renderFacilityIssues(data) {
                 );
                 
                 if (confirmAdd) {
-                    const { error: contactError } = await supabase
-                        .from('CONTACTS')
-                        .insert([{ Name: initiatedByName, facility_id: facility.id }]);
-                    
-                    if (contactError) {
-                        console.error("Error auto-creating new contact:", contactError);
-                        await showCustomAlert("Database Sync Notice", "Could not verify contact profile matching, but proceeding with saving your issue data.", "⚠️");
-                    } else {
-                        await loadFacilityContacts();
-                    }
+                    await promptForContactDetails(initiatedByName);
+                    await loadFacilityContacts();
                 }
             }
         }
