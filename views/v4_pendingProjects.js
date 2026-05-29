@@ -61,14 +61,12 @@ export async function renderPendingProjects(data) {
     `;
 
     const loadFacilityProjects = async () => {
-        // First query trying 'facility_id'
         let response = await supabase
             .from('FACILITY_PROJECTS')
             .select('*')
             .eq('facility_id', facility.id)
             .order('created_at', { ascending: false });
 
-        // Defensively fall back to lowercase 'facilityid' if the schema has an out of sync cached column name
         if (response.error && response.error.code === '42703') {
             response = await supabase
                 .from('FACILITY_PROJECTS')
@@ -93,7 +91,7 @@ export async function renderPendingProjects(data) {
 
         listContainer.innerHTML = dbData.map(item => `
             <div style="background:white; padding:15px; border-radius:10px; border-left:5px solid #00264d; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                <strong style="color:#00264d; font-size:16px; display:block; margin-bottom:4px;">${item.project_title || item.Title || 'Untitled Project'}</strong>
+                <strong style="color:#00264d; font-size:16px; display:block; margin-bottom:4px;">${item.project_title || item.project_name || item.Title || 'Untitled Project'}</strong>
                 ${item.budget ? `<span style="font-size:12px; background:#eff6ff; color:#1e40af; padding:2px 6px; border-radius:4px; font-weight:bold; display:inline-block; margin-bottom:8px;">Budget: ${item.budget}</span>` : ''}
                 <p style="margin:0; font-size:13px; color:#4b5563; line-height:1.4;">${item.notes || 'No extra scope notes recorded.'}</p>
                 <span style="font-size:10px; color:#94a3b8; display:block; margin-top:10px;">Created: ${new Date(item.created_at).toLocaleDateString()}</span>
@@ -117,6 +115,7 @@ export async function renderPendingProjects(data) {
 
         const payload = {
             project_title: titleVal,
+            project_name: titleVal,
             budget: document.getElementById('projectTrackBudgetInput').value.trim(),
             notes: document.getElementById('projectTrackNotesInput').value.trim(),
             facility_id: facility.id,
@@ -128,7 +127,11 @@ export async function renderPendingProjects(data) {
         const { error } = await supabase.from('FACILITY_PROJECTS').insert([payload]);
         if (error) {
             console.error(error);
-            alert("Could not append project details to data core.");
+            if (error.code === '23505') {
+                alert("Database Constraint Error: This facility is restricted to a single project row in the database schema.");
+            } else {
+                alert(`Could not append project details: ${error.message}`);
+            }
         } else {
             document.getElementById('projectTrackFormModal').style.display = 'none';
             await loadFacilityProjects();
