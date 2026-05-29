@@ -1,24 +1,178 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
 PURPOSE: Render Facility Contacts and Contact Detail View
-UPDATED: 2026-05-29 06:10:00 PM
+UPDATED: 2026-05-29 06:15:00 PM
 ================================================= */
 
-// ... (Keep all existing code, update only the button logic inside openContactDetail)
+import { supabase } from '../js/supabaseClient.js';
 
+export async function openContactDetail(contact, facility) {
+    const app = document.getElementById('app');
+    if (!app) return;
+
+    const phoneLink = contact.Phone 
+        ? `<a href="tel:${contact.Phone.replace(/[^0-9+]/g, '')}" style="color:#00264d; text-decoration:underline; font-weight:bold;">${contact.Phone}</a>` 
+        : 'N/A';
+        
+    const emailLink = contact.Email 
+        ? `<a href="mailto:${contact.Email}" style="color:#00264d; text-decoration:underline; font-weight:bold;">${contact.Email}</a>` 
+        : 'N/A';
+
+    app.innerHTML = `
+        <div style="padding:20px; font-family:Arial; min-height:100vh; background:#f3f4f6; text-align:center;">
+            <div style="max-width:500px; margin:0 auto; background:white; border-radius:12px; padding:30px; box-shadow:0 4px 10px rgba(0,0,0,0.05); text-align:left;">
+                
+                <div style="text-align:center; margin-bottom:20px;" id="detailAvatarContainer"></div>
+
+                <h2 style="margin:0 0 5px 0; color:#00264d; text-align:center;">${contact.Name || 'Unnamed Contact'}</h2>
+                <p style="margin:0 0 20px 0; color:#6b7280; text-align:center; font-weight:bold;">${contact.Role || 'No Role Assigned'}</p>
+
+                <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
+
+                <div style="margin-bottom:12px;"><strong>Phone:</strong> ${phoneLink}</div>
+                <div style="margin-bottom:12px;"><strong>Email:</strong> ${emailLink}</div>
+                <div style="margin-bottom:20px;"><strong>Notes:</strong> ${contact.Notes || 'None'}</div>
+
+                <div style="margin-top:30px; display:flex; flex-direction:column; gap:10px;">
+                    <button id="addContactIssueBtn" style="padding:14px; background:#28a745; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-size:14px; text-transform:uppercase;">+ Add Issue For This Contact</button>
+                    <button id="closeDetailBtn" style="padding:12px; background:#00264d; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">CLOSE DETAILS</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('closeDetailBtn').onclick = () => {
+        renderContacts({ facility });
+    };
+
+    // Updated button logic to trigger the auto-open popup in View 5
     document.getElementById('addContactIssueBtn').onclick = () => {
         const issueData = {
             facility: facility,
-            autoOpenModal: true, // New flag to trigger the popup
+            autoOpenModal: true, 
             prefill: {
                 initiated_by: contact.Name,
                 contact_id: contact.id
             }
         };
         
-        // Update hash and dispatch event
         window.location.hash = `#facilityIssues?facilityId=${facility.id}&initiatedBy=${encodeURIComponent(contact.Name)}`;
         window.dispatchEvent(new CustomEvent('navigate', { 
             detail: { target: 'facilityIssues', data: issueData } 
         }));
     };
+
+    setTimeout(async () => {
+        const { data: images } = await supabase
+            .from('FACILITY_IMAGES')
+            .select('*')
+            .eq('related_type', 'contact')
+            .eq('related_id', contact.id);
+
+        const avatarContainer = document.getElementById('detailAvatarContainer');
+        if (avatarContainer) {
+            if (images && images.length > 0) {
+                const latestImg = images.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+                avatarContainer.innerHTML = `<img src="${latestImg.image_url}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);">`;
+            } else {
+                avatarContainer.innerHTML = `<div style="width:100px; height:100px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; margin:0 auto; border:3px solid #f5c400;">${(contact.Name || 'U').charAt(0).toUpperCase()}</div>`;
+            }
+        }
+    }, 50); 
+}
+
+export async function renderContacts(data) {
+    const app = document.getElementById('app');
+    if (!app) return;
+
+    const facility = data?.facility ? data.facility : data;
+    const initialContact = data?.contact ? data.contact : null;
+
+    if (initialContact) {
+        return openContactDetail(initialContact, facility);
+    }
+
+    app.innerHTML = `
+        <div style="padding:20px; font-family:Arial; min-height:100vh; text-align:center; background:#f3f4f6;">
+            <h1 style="font-size:22px; margin-bottom:5px; color:#00264d; text-transform:uppercase;">${facility?.Name || 'FACILITY'} CONTACTS</h1>
+            <p style="color:#6b7280; margin-bottom:20px;">Manage contacts and personnel profiles</p>
+            
+            <div style="margin-bottom:25px; display:flex; gap:10px; justify-content:center;">
+                <button id="addManualContactBtn" style="padding:14px 20px; border:none; border-radius:8px; background:#28a745; color:white; font-weight:bold; cursor:pointer;">+ ADD NEW CONTACT</button>
+                <button id="backBtn" style="padding:14px 20px; border:none; border-radius:8px; background:#00264d; color:white; font-weight:bold; cursor:pointer;">BACK TO CONTROLS</button>
+            </div>
+
+            <div id="contactsGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:15px;"></div>
+
+            <div id="manualContactModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000; justify-content:center; align-items:center; padding:20px;">
+                <div style="background:white; padding:25px; border-radius:12px; width:100%; max-width:420px; text-align:left; max-height:90vh; overflow-y:auto; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
+                    <h3 id="modalTitle" style="margin-top:0; color:#00264d; border-bottom:2px solid #f5c400; padding-bottom:10px;">New Contact Profile</h3>
+                    
+                    <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">NAME</label>
+                    <input type="text" id="manualContactName" style="width:100%; padding:11px; margin-top:5px; border:1px solid #ccc; border-radius:6px;" placeholder="Full Name">
+                    
+                    <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">ROLE</label>
+                    <input type="text" id="manualContactRole" style="width:100%; padding:11px; margin-top:5px; border:1px solid #ccc; border-radius:6px;" placeholder="e.g. Owner, Tenant, Driver">
+                    
+                    <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">PHONE</label>
+                    <input type="text" id="manualContactPhone" style="width:100%; padding:11px; margin-top:5px; border:1px solid #ccc; border-radius:6px;" placeholder="Phone Number">
+                    
+                    <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">EMAIL</label>
+                    <input type="email" id="manualContactEmail" style="width:100%; padding:11px; margin-top:5px; border:1px solid #ccc; border-radius:6px;" placeholder="Email Address">
+                    
+                    <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">NOTES</label>
+                    <textarea id="manualContactNotes" style="width:100%; padding:11px; margin-top:5px; border:1px solid #ccc; border-radius:6px; min-height:60px;" placeholder="Contextual notes..."></textarea>
+                    
+                    <div style="display:flex; gap:10px; margin-top:25px;">
+                        <button id="manualContactSaveBtn" style="flex:1; padding:13px; background:#28a745; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">SAVE DETAILS</button>
+                        <button id="manualContactCloseBtn" style="flex:1; padding:13px; background:#eee; color:#333; border:none; border-radius:8px; cursor:pointer;">CLOSE</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 06:15:00 PM
+            </div>
+        </div>
+    `;
+
+    const contactsGrid = document.getElementById('contactsGrid');
+
+    const loadContactsGridData = async () => {
+        contactsGrid.innerHTML = '';
+        const { data: contacts } = await supabase.from('CONTACTS').select('*').eq('facility_id', facility?.id);
+        const { data: openIssues } = await supabase.from('FACILITY_ISSUES').select('id, initiated_by').eq('open_issue', true).eq('facility_id', facility?.id);
+        const { data: allImages } = await supabase.from('FACILITY_IMAGES').select('*').eq('related_type', 'contact');
+
+        const imageMap = {};
+        if (allImages) {
+            allImages.forEach(img => {
+                if (!imageMap[img.related_id] || new Date(img.created_at) > new Date(imageMap[img.related_id].created_at)) {
+                    imageMap[img.related_id] = img;
+                }
+            });
+        }
+
+        const issuesCountMap = {};
+        if (openIssues) {
+            openIssues.forEach(issue => {
+                if (issue.initiated_by) {
+                    const normKey = issue.initiated_by.toLowerCase().trim();
+                    issuesCountMap[normKey] = (issuesCountMap[normKey] || 0) + 1;
+                }
+            });
+        }
+
+        if (contacts && contacts.length > 0) {
+            contacts.forEach(contact => {
+                const btn = document.createElement('button');
+                btn.style.cssText = "padding:16px; border-radius:12px; background:#f5c400; border:none; cursor:pointer; font-weight:bold; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;";
+                
+                const nameDisplay = contact.Name || 'Unnamed';
+                const roleDisplay = contact.Role || '';
+                const pendingCount = issuesCountMap[nameDisplay.toLowerCase().trim()] || 0;
+                const contactImg = imageMap[contact.id];
+
+                const avatarHtml = contactImg && contactImg.image_url 
+                    ? `<img src="${contactImg.image_url}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.15);" alt="">`
+                    : `<div style="width:50px; height:50px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold;
