@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 07:05:00 AM
+UPDATED: 2026-05-29 06:15:00 PM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -13,6 +13,10 @@ import { renderImageManagerSection } from '../js/imageManager.js';
 export async function renderFacilityIssues(data) {
     const facility = data?.facility ? data.facility : data;
     const contact = data?.contact ? data.contact : null;
+    
+    // Check if we are coming from the "Add Issue For This Contact" button
+    const autoOpen = data?.autoOpenModal || false;
+    const prefillData = data?.prefill || null;
 
     if (!facility || !facility.id) {
         console.error("Facility object is missing or invalid");
@@ -111,11 +115,12 @@ export async function renderFacilityIssues(data) {
             </div>
             
             <div style="margin-top:40px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v5_FacilityIssues.js | Updated: 2026-05-29 07:05:00 AM
+                File: v5_FacilityIssues.js | Updated: 2026-05-29 06:15:00 PM
             </div>
         </div>
     `;
 
+    // ... Helper functions (showCustomAlert, showCustomConfirm, promptForContactDetails)
     const showCustomAlert = (title, message, icon = '⚠️') => {
         document.getElementById('customDialogIcon').innerText = icon;
         document.getElementById('customDialogTitle').innerText = title;
@@ -123,7 +128,6 @@ export async function renderFacilityIssues(data) {
         document.getElementById('customDialogConfirmBtn').innerText = "OK";
         document.getElementById('customDialogCancelBtn').style.display = 'none';
         document.getElementById('customDialogModal').style.display = 'flex';
-        
         return new Promise((resolve) => {
             document.getElementById('customDialogConfirmBtn').onclick = () => {
                 document.getElementById('customDialogModal').style.display = 'none';
@@ -140,7 +144,6 @@ export async function renderFacilityIssues(data) {
         document.getElementById('customDialogCancelBtn').innerText = "NO";
         document.getElementById('customDialogCancelBtn').style.display = 'block';
         document.getElementById('customDialogModal').style.display = 'flex';
-
         return new Promise((resolve) => {
             document.getElementById('customDialogConfirmBtn').onclick = () => {
                 document.getElementById('customDialogModal').style.display = 'none';
@@ -159,16 +162,12 @@ export async function renderFacilityIssues(data) {
         document.getElementById('quickContactPhone').value = '';
         document.getElementById('quickContactEmail').value = '';
         document.getElementById('quickContactNotes').value = '';
-        
         document.getElementById('quickContactImageSection').style.display = 'none';
         document.getElementById('quickContactImageContainer').innerHTML = '';
-        
         document.getElementById('quickContactSaveBtn').innerText = "SAVE CONTACT";
         document.getElementById('quickContactCancelBtn').innerText = "SKIP DETAILS";
         document.getElementById('quickContactModal').style.display = 'flex';
-
         let activeContactId = null;
-
         return new Promise((resolve) => {
             document.getElementById('quickContactSaveBtn').onclick = async () => {
                 if (activeContactId) {
@@ -176,7 +175,6 @@ export async function renderFacilityIssues(data) {
                     resolve(true);
                     return;
                 }
-
                 const contactPayload = {
                     Name: targetName,
                     Role: document.getElementById('quickContactRole').value.trim(),
@@ -185,40 +183,24 @@ export async function renderFacilityIssues(data) {
                     Notes: document.getElementById('quickContactNotes').value.trim(),
                     facility_id: facility.id
                 };
-
-                const { data: insertData, error: insertErr } = await supabase
-                    .from('CONTACTS')
-                    .insert([contactPayload])
-                    .select();
-
+                const { data: insertData, error: insertErr } = await supabase.from('CONTACTS').insert([contactPayload]).select();
                 if (insertErr) {
-                    console.error(insertErr);
                     await showCustomAlert("Sync Error", "Failed to save the additional contact fields.", "❌");
                     document.getElementById('quickContactModal').style.display = 'none';
                     resolve(true);
                     return;
                 }
-
                 const savedContact = insertData?.[0];
                 if (savedContact) {
                     activeContactId = savedContact.id;
-                    
                     document.getElementById('quickContactImageSection').style.display = 'block';
-                    renderImageManagerSection(
-                        document.getElementById('quickContactImageContainer'), 
-                        'contact', 
-                        activeContactId, 
-                        { title: 'Contact Images', facility }
-                    );
-
+                    renderImageManagerSection(document.getElementById('quickContactImageContainer'), 'contact', activeContactId, { title: 'Contact Images', facility });
                     document.getElementById('quickContactSaveBtn').innerText = "DONE";
                     document.getElementById('quickContactCancelBtn').style.display = 'none';
                 }
             };
-
             document.getElementById('quickContactCancelBtn').onclick = async () => {
-                const basicPayload = { Name: targetName, facility_id: facility.id };
-                await supabase.from('CONTACTS').insert([basicPayload]);
+                await supabase.from('CONTACTS').insert([{ Name: targetName, facility_id: facility.id }]);
                 document.getElementById('quickContactModal').style.display = 'none';
                 resolve(true);
             };
@@ -226,84 +208,45 @@ export async function renderFacilityIssues(data) {
     };
 
     const loadFacilityContacts = async () => {
-        const { data: contactsData, error } = await supabase
-            .from('CONTACTS')
-            .select('*')
-            .eq('facility_id', facility.id);
-        
-        if (error) {
-            console.error("Error loading contacts for combo box:", error);
-            return;
-        }
-
+        const { data: contactsData } = await supabase.from('CONTACTS').select('*').eq('facility_id', facility.id);
         activeFacilityContacts = contactsData || [];
         const datalist = document.getElementById('contactsDatalist');
         if (datalist) {
-            datalist.innerHTML = activeFacilityContacts
-                .map(c => `<option value="${c.Name || ''}"></option>`)
-                .join('');
+            datalist.innerHTML = activeFacilityContacts.map(c => `<option value="${c.Name || ''}"></option>`).join('');
         }
     };
 
     const loadIssues = async () => {
         await loadFacilityContacts();
-
-        const { data: dbData, error } = await supabase.from('FACILITY_ISSUES')
-            .select('*')
-            .eq('facility_id', facility.id)
-            .order('created_at', { ascending: false });
-        if (error) { console.error(error); return; }
-
+        const { data: dbData } = await supabase.from('FACILITY_ISSUES').select('*').eq('facility_id', facility.id).order('created_at', { ascending: false });
         const list = document.getElementById('issuesList');
-        
         if (!dbData || !dbData.length) {
             list.innerHTML = '<div style="text-align:center;color:#94a3b8;font-style:italic;">No active standard issues reported yet.</div>';
             return;
         }
-
         let cardsHtml = '';
-        
         for (const item of dbData) {
-            const matchedContact = activeFacilityContacts.find(
-                c => (c.Name || '').toLowerCase() === (item.initiated_by || '').toLowerCase()
-            );
-
+            const matchedContact = activeFacilityContacts.find(c => (c.Name || '').toLowerCase() === (item.initiated_by || '').toLowerCase());
             let avatarMarkup = `<div style="width:40px;height:40px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:18px;color:#94a3b8;font-weight:bold;flex-shrink:0;">👤</div>`;
-
             if (matchedContact) {
-                const { data: fileList } = await supabase.storage
-                    .from('facility-images')
-                    .list(`contact/${matchedContact.id}`);
-
+                const { data: fileList } = await supabase.storage.from('facility-images').list(`contact/${matchedContact.id}`);
                 if (fileList && fileList.length > 0) {
-                    const sortedFiles = fileList.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                    const targetFile = sortedFiles[0].name;
-                    
-                    const { data: publicUrlData } = supabase.storage
-                        .from('facility-images')
-                        .getPublicUrl(`contact/${matchedContact.id}/${targetFile}`);
-                        
-                    if (publicUrlData?.publicUrl) {
-                        avatarMarkup = `<img src="${publicUrlData.publicUrl}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid #d1d5db;" />`;
-                    }
+                    const targetFile = fileList.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0].name;
+                    const { data: publicUrlData } = supabase.storage.from('facility-images').getPublicUrl(`contact/${matchedContact.id}/${targetFile}`);
+                    if (publicUrlData?.publicUrl) avatarMarkup = `<img src="${publicUrlData.publicUrl}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid #d1d5db;" />`;
                 }
             }
-
             cardsHtml += `
-                <div class="issue-card" style="background:white;padding:15px;border-radius:10px;border-left:5px solid ${item.open_issue ? '#dc2625':'#28a745'};cursor:pointer;display:flex;align-items:center;gap:12px;"
-                    id="facility-issue-item-${item.id}">
+                <div class="issue-card" style="background:white;padding:15px;border-radius:10px;border-left:5px solid ${item.open_issue ? '#dc2625':'#28a745'};cursor:pointer;display:flex;align-items:center;gap:12px;" id="facility-issue-item-${item.id}">
                     ${avatarMarkup}
                     <div style="flex:1;">
                         <strong style="display:block;color:#00264d;font-size:15px;">${item.issue}</strong>
                         <span style="font-size:12px;color:#6b7280;">By: ${item.initiated_by || 'Unknown'}</span>
                     </div>
                     <span style="font-size:10px;color:#94a3b8;white-space:nowrap;">${new Date(item.created_at).toLocaleDateString()}</span>
-                </div>
-            `;
+                </div>`;
         }
-
         list.innerHTML = cardsHtml;
-
         dbData.forEach(item => {
             const el = document.getElementById(`facility-issue-item-${item.id}`);
             if (el) el.onclick = () => window.editIssue(item);
@@ -319,19 +262,22 @@ export async function renderFacilityIssues(data) {
         document.getElementById('notesInput').value = item.notes;
         document.getElementById('modalTitle').innerText = "Edit Issue";
         document.getElementById('saveIssueBtn').innerText = "UPDATE INFO";
-
         document.getElementById('issue-image-section').style.display = 'block';
         renderImageManagerSection(document.getElementById('issue-image-container'), 'issue', item.id, { facility, title:'Issue Photos' });
-
         document.getElementById('issueModal').style.display = 'flex';
     };
 
+    // Standard Create Logic
     document.getElementById('createNewIssueBtn').onclick = async () => {
         await loadFacilityContacts();
+        openBlankModal();
+    };
+
+    const openBlankModal = (prefillName = '') => {
         document.getElementById('issueId').value = '';
         document.getElementById('issueInput').value = '';
         document.getElementById('toolInput').value = '';
-        document.getElementById('initiatedByInput').value = contact ? (contact.Name || contact.name || '') : '';
+        document.getElementById('initiatedByInput').value = prefillName || (contact ? (contact.Name || contact.name || '') : '');
         document.getElementById('notesInput').value = '';
         document.getElementById('modalTitle').innerText = "Report Issue";
         document.getElementById('saveIssueBtn').innerText = "SAVE ISSUE";
@@ -343,7 +289,6 @@ export async function renderFacilityIssues(data) {
     document.getElementById('saveIssueBtn').onclick = async () => {
         const id = document.getElementById('issueId').value;
         const initiatedByName = document.getElementById('initiatedByInput').value.trim();
-
         const payload = {
             issue: document.getElementById('issueInput').value,
             tool_required: document.getElementById('toolInput').value,
@@ -352,43 +297,20 @@ export async function renderFacilityIssues(data) {
             facility_id: facility.id, 
             open_issue: true
         };
-
-        if (!payload.issue) {
-            await showCustomAlert("Missing Description", "Please describe the problem before saving.", "📋");
-            return;
-        }
+        if (!payload.issue) return await showCustomAlert("Missing Description", "Please describe the problem before saving.", "📋");
 
         if (initiatedByName) {
-            const contactExists = activeFacilityContacts.some(
-                c => (c.Name || '').toLowerCase() === initiatedByName.toLowerCase()
-            );
-
+            const contactExists = activeFacilityContacts.some(c => (c.Name || '').toLowerCase() === initiatedByName.toLowerCase());
             if (!contactExists) {
-                const confirmAdd = await showCustomConfirm(
-                    "New Contact Detected", 
-                    `The initiator "${initiatedByName}" is not in your contacts list. Do you want to add them as a new facility contact?`, 
-                    "👤"
-                );
-                
+                const confirmAdd = await showCustomConfirm("New Contact Detected", `The initiator "${initiatedByName}" is not in your contacts list. Add them?`, "👤");
                 if (confirmAdd) {
                     await promptForContactDetails(initiatedByName);
                     await loadFacilityContacts();
                 }
             }
         }
-
-        let result;
-        if (!id) {
-            result = await supabase.from('FACILITY_ISSUES').insert([payload]).select();
-        } else {
-            result = await supabase.from('FACILITY_ISSUES').update(payload).eq('id', id).select();
-        }
-
-        if (result.error) {
-            await showCustomAlert("Error Saving", "Could not sync layout fields to the remote platform.", "❌");
-            return;
-        }
-
+        let result = !id ? await supabase.from('FACILITY_ISSUES').insert([payload]).select() : await supabase.from('FACILITY_ISSUES').update(payload).eq('id', id).select();
+        if (result.error) return await showCustomAlert("Error Saving", "Could not sync layout fields.", "❌");
         const savedItem = result.data[0];
         if (savedItem) {
             document.getElementById('issueId').value = savedItem.id;
@@ -408,5 +330,11 @@ export async function renderFacilityIssues(data) {
         if (window.navigateTo) window.navigateTo('facilityControls', facility);
     };
 
+    // RUN ON LOAD
     await loadIssues();
+
+    // TRIGGER AUTO-OPEN IF FLAG IS SET
+    if (autoOpen && prefillData) {
+        openBlankModal(prefillData.initiated_by);
+    }
 }
