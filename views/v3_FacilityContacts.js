@@ -263,33 +263,40 @@ UPDATED: 2026-05-29 06:15:00 PM
 
 // ... (keep the rest of your file exactly as it is until the backBtn section)
 
-const backBtn = document.getElementById('backBtn');
-if (backBtn) {
-    backBtn.onclick = (e) => {
-        e.preventDefault();
-        
-        // 1. Try to get the ID from various possible data locations
-        const facilityId = facility?.id || facility?.facility_id;
-        
-        if (facilityId) {
-            console.log("Returning to Facility Controls for ID:", facilityId);
-            window.location.hash = `#facilityControls?id=${facilityId}`;
+/* =================================================
+FILE: views/v3_FacilityContacts.js
+PURPOSE: Render Facility Contacts and Contact Detail View
+UPDATED: 2026-05-29 06:20:00 PM
+================================================= */
+
+// ... (Keep all your existing code until you get to the backBtn logic)
+
+    // THE BACK BUTTON LOGIC
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+        backBtn.onclick = (e) => {
+            e.preventDefault();
             
-            // Trigger the router in main.js
-            window.dispatchEvent(new CustomEvent('navigate', { 
-                detail: { 
-                    target: 'facilityControls', 
-                    data: facility // This must contain the facility info for V2 to work
-                } 
-            }));
-        } else {
-            // 2. EMERGENCY FALLBACK: If we don't know which facility we're in, 
-            // go to the main list (View 1) instead of doing nothing.
-            console.warn("Facility ID missing. Forcing return to main dashboard.");
-            window.location.hash = `#dashboard`;
-            window.dispatchEvent(new CustomEvent('navigate', { 
-                detail: { target: 'dashboard', data: {} } 
-            }));
-        }
-    };
-}
+            // 1. Try to go back to the specific facility
+            const facilityId = facility?.id || facility?.facility_id;
+            
+            if (facilityId) {
+                console.log("Navigating back to Facility:", facilityId);
+                window.location.hash = `#facilityControls?id=${facilityId}`;
+                window.dispatchEvent(new CustomEvent('navigate', { 
+                    detail: { target: 'facilityControls', data: facility } 
+                }));
+            } else {
+                // 2. Fallback to Dashboard if data is corrupted
+                console.warn("Facility ID missing, forcing dashboard.");
+                window.location.hash = `#dashboard`;
+                window.dispatchEvent(new CustomEvent('navigate', { 
+                    detail: { target: 'dashboard', data: {} } 
+                }));
+            }
+        };
+    }
+
+    // Load the grid data
+    await loadContactsGridData();
+} // <--- Added missing brace for renderContacts
