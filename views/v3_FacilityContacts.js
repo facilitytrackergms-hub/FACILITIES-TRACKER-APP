@@ -1,7 +1,7 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
 PURPOSE: Render Facility Contacts and Contact Detail View with Clean Direct Routing
-UPDATED: 2026-05-29 08:44:00 AM
+UPDATED: 2026-05-29 08:48:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -36,7 +36,7 @@ export async function renderContacts(data) {
 
             <div id="manualContactModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000; justify-content:center; align-items:center; padding:20px;">
                 <div style="background:white; padding:25px; border-radius:12px; width:100%; max-width:420px; text-align:left; max-height:90vh; overflow-y:auto; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
-                    <h3 style="margin-top:0; color:#00264d; border-bottom:2px solid #f5c400; padding-bottom:10px;">New Contact Profile</h3>
+                    <h3 id="modalTitle" style="margin-top:0; color:#00264d; border-bottom:2px solid #f5c400; padding-bottom:10px;">New Contact Profile</h3>
                     
                     <label style="display:block; font-size:12px; font-weight:bold; color:#666; margin-top:15px;">NAME</label>
                     <input type="text" id="manualContactName" style="width:100%; padding:11px; margin-top:5px; border:1px solid #ccc; border-radius:6px;" placeholder="Full Name">
@@ -66,7 +66,7 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 08:44:00 AM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 08:48:00 AM
             </div>
         </div>
     `;
@@ -133,6 +133,7 @@ export async function renderContacts(data) {
 
     document.getElementById('addManualContactBtn').onclick = () => {
         activeManualContactId = null;
+        document.getElementById('modalTitle').innerText = "New Contact Profile";
         document.getElementById('manualContactName').value = '';
         document.getElementById('manualContactRole').value = '';
         document.getElementById('manualContactPhone').value = '';
@@ -147,12 +148,6 @@ export async function renderContacts(data) {
     };
 
     document.getElementById('manualContactSaveBtn').onclick = async () => {
-        if (activeManualContactId) {
-            document.getElementById('manualContactModal').style.display = 'none';
-            await loadContactsGridData();
-            return;
-        }
-
         const nameVal = document.getElementById('manualContactName').value.trim();
         if (!nameVal) {
             alert("Please enter a name for the contact profile.");
@@ -167,6 +162,22 @@ export async function renderContacts(data) {
             Notes: document.getElementById('manualContactNotes').value.trim(),
             facility_id: facility.id
         };
+
+        if (activeManualContactId) {
+            const { error: updateErr } = await supabase
+                .from('CONTACTS')
+                .update(payload)
+                .eq('id', activeManualContactId);
+
+            if (updateErr) {
+                console.error(updateErr);
+                alert("Could not update the contact profile row.");
+                return;
+            }
+            document.getElementById('manualContactModal').style.display = 'none';
+            await loadContactsGridData();
+            return;
+        }
 
         const { data: resultData, error: insertErr } = await supabase
             .from('CONTACTS')
@@ -200,10 +211,6 @@ export async function renderContacts(data) {
         await loadContactsGridData();
     };
 
-    document.getElementById('backBtn').onclick = () => {
-        if (window.navigateTo) window.navigateTo('facilitiesDashboard');
-    };
-
     await loadContactsGridData();
 }
 
@@ -228,27 +235,37 @@ async function openContactDetail(contact, facility) {
 
     app.innerHTML = `
         <div style="padding:20px; font-family:Arial; min-height:100vh; text-align:center; background:#f3f4f6;">
-            <h2 style="color:#00264d; margin-bottom:5px;">${contactName}</h2>
-            <p style="color:#4b5563; font-weight:bold; margin-top:0; margin-bottom:15px;">${contactRole}</p>
             
-            <div id="contactImageManager" style="margin:0 auto 20px auto; max-width:400px;"></div>
+            <div style="background:white; border-radius:14px; max-width:400px; margin:0 auto 25px auto; padding:25px; box-shadow:0 4px 12px rgba(0,0,0,0.08); text-align:center; border-top: 4px solid #f5c400;">
+                <h2 style="color:#00264d; margin:0 0 4px 0; font-size:24px;">${contactName}</h2>
+                <p style="color:#6b7280; font-weight:bold; margin:0 0 20px 0; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">${contactRole}</p>
+                
+                <div id="contactImageManager" style="margin:0 auto 20px auto; max-width:100%; display:flex; justify-content:center;"></div>
 
-            <div style="background:white; padding:15px; border-radius:10px; max-width:400px; margin:0 auto 20px auto; text-align:left; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-                <p style="margin:8px 0;"><strong>Phone:</strong> <a href="tel:${contactPhone}" style="color:#00264d; text-decoration:none;">${contactPhone || 'N/A'}</a></p>
-                <p style="margin:8px 0;"><strong>Email:</strong> <a href="mailto:${contactEmail}" style="color:#00264d; text-decoration:none;">${contactEmail || 'N/A'}</a></p>
-                <p style="margin:8px 0;"><strong>Notes:</strong> ${contactNotes}</p>
+                <div style="text-align:left; border-top:1px solid #f3f4f6; padding-top:15px; font-size:14px; color:#374151; display:flex; flex-direction:column; gap:10px;">
+                    <p style="margin:0;"><strong>Phone:</strong> <a href="tel:${contactPhone}" style="color:#00264d; text-decoration:none; font-weight:500;">${contactPhone || 'N/A'}</a></p>
+                    <p style="margin:0;"><strong>Email:</strong> <a href="mailto:${contactEmail}" style="color:#00264d; text-decoration:none; font-weight:500;">${contactEmail || 'N/A'}</a></p>
+                    <p style="margin:0; line-height:1.4;"><strong>Notes:</strong> <span style="color:#6b7280;">${contactNotes}</span></p>
+                </div>
             </div>
 
-            <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:25px; max-width:400px; margin-left:auto; margin-right:auto;">
-                <button id="directIssuesPageBtn" style="flex:1; padding:14px; background:${statusColor}; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; position:relative; line-height:1.2;">
-                    SEE RELATED ISSUES 
-                    ${issueCount > 0 ? `<span style="background:red; font-size:11px; color:white; border-radius:50%; padding:2px 7px; margin-left:4px; font-weight:bold; display:inline-block; vertical-align:middle;">${issueCount}</span>` : ''}
+            <div style="display:flex; flex-direction:column; gap:10px; max-width:400px; margin:0 auto;">
+                <div style="display:flex; gap:10px; width:100%;">
+                    <button id="directIssuesPageBtn" style="flex:1; padding:14px; background:${statusColor}; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; position:relative; line-height:1.2; font-size:13px;">
+                        SEE RELATED ISSUES 
+                        ${issueCount > 0 ? `<span style="background:red; font-size:11px; color:white; border-radius:50%; padding:2px 7px; margin-left:4px; font-weight:bold; display:inline-block; vertical-align:middle;">${issueCount}</span>` : ''}
+                    </button>
+                    <button id="editContactBtn" style="flex:1; padding:14px; background:#f5c400; color:#00264d; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:13px;">
+                        ✏️ EDIT INFO
+                    </button>
+                </div>
+                <button id="backBtn" style="width:100%; padding:14px; background:#00264d; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-size:13px;">
+                    BACK TO CONTACTS LIST
                 </button>
-                <button id="backBtn" style="flex:1; padding:14px; background:#00264d; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">BACK TO LIST</button>
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 08:44:00 AM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 08:48:00 AM
             </div>
         </div>
     `;
@@ -260,6 +277,57 @@ async function openContactDetail(contact, facility) {
 
     document.getElementById('directIssuesPageBtn').onclick = () => {
         window.navigateTo('facilityIssues', { facility, contact });
+    };
+
+    document.getElementById('editContactBtn').onclick = () => {
+        // Hydrate configuration setup inside manual input modal for clean updates
+        document.getElementById('modalTitle').innerText = `Edit ${contactName}`;
+        document.getElementById('manualContactName').value = contactName;
+        document.getElementById('manualContactRole').value = contactRole;
+        document.getElementById('manualContactPhone').value = contactPhone;
+        document.getElementById('manualContactEmail').value = contactEmail;
+        document.getElementById('manualContactNotes').value = contact.Notes || '';
+        
+        // Show file module manager since ID exists securely
+        document.getElementById('manualContactImageSection').style.display = 'block';
+        renderImageManagerSection(
+            document.getElementById('manualContactImageContainer'),
+            'contact',
+            contact.id,
+            { title: 'Contact Pictures', facility }
+        );
+
+        const modalInstance = document.getElementById('manualContactModal');
+        if (modalInstance) {
+            modalInstance.style.display = 'flex';
+            // Repoint context tracking
+            const saveBtn = document.getElementById('manualContactSaveBtn');
+            saveBtn.innerText = "UPDATE DETAILS";
+            
+            // Override dynamic save callback handler context explicitly
+            saveBtn.onclick = async () => {
+                const nameVal = document.getElementById('manualContactName').value.trim();
+                if (!nameVal) {
+                    alert("Name is required.");
+                    return;
+                }
+                const payload = {
+                    Name: nameVal,
+                    Role: document.getElementById('manualContactRole').value.trim(),
+                    Phone: document.getElementById('manualContactPhone').value.trim(),
+                    Email: document.getElementById('manualContactEmail').value.trim(),
+                    Notes: document.getElementById('manualContactNotes').value.trim()
+                };
+                const { error } = await supabase.from('CONTACTS').update(payload).eq('id', contact.id);
+                if (error) {
+                    alert('Error updating contact');
+                } else {
+                    modalInstance.style.display = 'none';
+                    // Re-render local layout updates instantly
+                    openContactDetail({...contact, ...payload}, facility);
+                }
+            };
+        }
     };
 
     document.getElementById('backBtn').onclick = () => {
