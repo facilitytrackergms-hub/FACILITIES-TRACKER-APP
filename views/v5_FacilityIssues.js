@@ -1,12 +1,19 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 09:45:00 PM
+UPDATED: 2026-05-28 10:45:00 PM
+
+STRICT HEADER RULE:
+Do not ever remove or change this header section.
+Always keep this header at the top of current files and new files.
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
 import { renderImageManagerSection } from '../js/imageManager.js';
 
-export async function renderFacilityIssues(facility, contact = null) {
+export async function renderFacilityIssues(data) {
+    const facility = data?.facility ? data.facility : data;
+    const contact = data?.contact ? data.contact : null;
+
     if (!facility || !facility.id) {
         console.error("Facility object is missing or invalid");
         return;
@@ -53,24 +60,35 @@ export async function renderFacilityIssues(facility, contact = null) {
                     </div>
                 </div>
             </div>
+            
+            <div style="margin-top:40px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
+                File: v5_FacilityIssues.js | Updated: 2026-05-28 10:45:00 PM
+            </div>
         </div>
     `;
 
     const loadIssues = async () => {
-        const { data, error } = await supabase.from('FACILITY_ISSUES')
+        const { data: dbData, error } = await supabase.from('FACILITY_ISSUES')
             .select('*')
             .eq('facility_id', facility.id)
             .order('created_at', { ascending: false });
         if (error) { console.error(error); return; }
 
         const list = document.getElementById('issuesList');
-        list.innerHTML = data && data.length ? data.map(item => `
+        list.innerHTML = dbData && dbData.length ? dbData.map(item => `
             <div class="issue-card" style="background:white;padding:15px;border-radius:10px;border-left:5px solid ${item.open_issue ? '#dc2625':'#28a745'};cursor:pointer;"
-                onclick="window.editIssue(${JSON.stringify(item).replace(/"/g,'&quot;')})">
+                id="facility-issue-item-${item.id}">
                 <strong style="color:#00264d;">${item.issue}</strong>
                 <span style="font-size:10px;color:#94a3b8;">${new Date(item.created_at).toLocaleDateString()}</span>
             </div>
         `).join('') : '<div style="text-align:center;color:#94a3b8;font-style:italic;">No issues reported yet.</div>';
+
+        if (dbData) {
+            dbData.forEach(item => {
+                const el = document.getElementById(`facility-issue-item-${item.id}`);
+                if (el) el.onclick = () => window.editIssue(item);
+            });
+        }
     };
 
     window.editIssue = (item) => {
@@ -108,7 +126,7 @@ export async function renderFacilityIssues(facility, contact = null) {
             tool_required: document.getElementById('toolInput').value,
             initiated_by: document.getElementById('initiatedByInput').value,
             notes: document.getElementById('notesInput').value,
-            facility_id: facility.id, // Ensure facility_id is set
+            facility_id: facility.id, 
             open_issue: true
         };
 
@@ -116,10 +134,8 @@ export async function renderFacilityIssues(facility, contact = null) {
 
         let result;
         if (!id) {
-            // Insert new issue and get numeric ID
             result = await supabase.from('FACILITY_ISSUES').insert([payload]).select();
         } else {
-            // Update existing issue
             result = await supabase.from('FACILITY_ISSUES').update(payload).eq('id', id).select();
         }
 
@@ -140,8 +156,8 @@ export async function renderFacilityIssues(facility, contact = null) {
     };
 
     document.getElementById('backToProjects').onclick = () => {
-        if (window.navigateTo) window.navigateTo('pendingProjects', facility);
+        if (window.navigateTo) window.navigateTo('pendingProjects', { facility, contact });
     };
 
-    loadIssues();
+    await loadIssues();
 }
