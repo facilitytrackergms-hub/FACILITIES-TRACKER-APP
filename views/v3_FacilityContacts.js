@@ -1,7 +1,7 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
 PURPOSE: Render Facility Contacts and Contact Detail View with avatar on top
-UPDATED: 2026-05-29 02:36:55 PM
+UPDATED: 2026-05-29 02:48:10 PM
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
@@ -11,6 +11,7 @@ export async function openContactDetail(contact, facility) {
     const app = document.getElementById('app');
     if (!app) return;
 
+    // 1. Immediately inject HTML so elements exist in the DOM tree right away
     app.innerHTML = `
         <div style="padding:20px; font-family:Arial; min-height:100vh; background:#f3f4f6; text-align:center;">
             <div style="max-width:500px; margin:0 auto; background:white; border-radius:12px; padding:30px; box-shadow:0 4px 10px rgba(0,0,0,0.05); text-align:left;">
@@ -35,33 +36,32 @@ export async function openContactDetail(contact, facility) {
         </div>
     `;
 
-    // Corrected to lowercase 'images' route matching standard Supabase design configurations
-    const { data: images } = await supabase
-        .from('images')
-        .select('*')
-        .eq('entity_type', 'contact')
-        .eq('entity_id', contact.id);
-
-    const avatarContainer = document.getElementById('detailAvatarContainer');
-    
-    if (images && images.length > 0) {
-        const latestImg = images.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-        avatarContainer.innerHTML = `<img src="${latestImg.public_url}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);">`;
-    } else {
-        avatarContainer.innerHTML = `<div style="width:100px; height:100px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; margin:0 auto; border:3px solid #f5c400;">${(contact.Name || 'U').charAt(0).toUpperCase()}</div>`;
+    // 2. Initialize the Image Manager instantly while elements are available
+    const managerContainer = document.getElementById('contactImageManagerContainer');
+    if (managerContainer && typeof renderImageManagerSection === 'function') {
+        renderImageManagerSection('contact', contact.id, managerContainer);
     }
-
-    // Defer the image manager invocation until the stack frame finishes layout rendering
-    setTimeout(() => {
-        const managerContainer = document.getElementById('contactImageManagerContainer');
-        if (managerContainer && typeof renderImageManagerSection === 'function') {
-            renderImageManagerSection('contact', contact.id, managerContainer);
-        }
-    }, 0);
 
     document.getElementById('closeDetailBtn').onclick = () => {
         renderContacts({ facility });
     };
+
+    // 3. Now run the async query against the correct table matching your schema
+    const { data: images } = await supabase
+        .from('FACILITY_IMAGES')
+        .select('*')
+        .eq('related_type', 'contact')
+        .eq('related_id', contact.id);
+
+    const avatarContainer = document.getElementById('detailAvatarContainer');
+    if (avatarContainer) {
+        if (images && images.length > 0) {
+            const latestImg = images.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+            avatarContainer.innerHTML = `<img src="${latestImg.image_url}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);">`;
+        } else {
+            avatarContainer.innerHTML = `<div style="width:100px; height:100px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; margin:0 auto; border:3px solid #f5c400;">${(contact.Name || 'U').charAt(0).toUpperCase()}</div>`;
+        }
+    }
 }
 
 export async function renderContacts(data) {
@@ -119,7 +119,7 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:36:55 PM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:48:10 PM
             </div>
         </div>
     `;
@@ -140,17 +140,16 @@ export async function renderContacts(data) {
             .eq('open_issue', true)
             .eq('facility_id', facility?.id);
 
-        // Updated database target string path down here as well to fix grid loaders
         const { data: allImages } = await supabase
-            .from('images')
+            .from('FACILITY_IMAGES')
             .select('*')
-            .eq('entity_type', 'contact');
+            .eq('related_type', 'contact');
 
         const imageMap = {};
         if (allImages) {
             allImages.forEach(img => {
-                if (!imageMap[img.entity_id] || new Date(img.created_at) > new Date(imageMap[img.entity_id].created_at)) {
-                    imageMap[img.entity_id] = img;
+                if (!imageMap[img.related_id] || new Date(img.created_at) > new Date(imageMap[img.related_id].created_at)) {
+                    imageMap[img.related_id] = img;
                 }
             });
         }
@@ -187,8 +186,8 @@ export async function renderContacts(data) {
                 const pendingCount = issuesCountMap[normNameKey] || 0;
 
                 const contactImg = imageMap[contact.id];
-                const avatarHtml = contactImg && contactImg.public_url 
-                    ? `<img src="${contactImg.public_url}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.15);" alt="">`
+                const avatarHtml = contactImg && contactImg.image_url 
+                    ? `<img src="${contactImg.image_url}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.15);" alt="">`
                     : `<div style="width:50px; height:50px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:bold; border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.15);">${nameDisplay.charAt(0).toUpperCase()}</div>`;
 
                 btn.innerHTML = `
