@@ -1,13 +1,12 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
 PURPOSE: Render Facility Contacts and Contact Detail View with avatar on top
-UPDATED: 2026-05-29 02:34:12 PM
+UPDATED: 2026-05-29 02:36:55 PM
 ================================================= */
 
 import { supabase } from '../js/supabaseClient.js';
 import { renderImageManagerSection } from '../js/imageManager.js';
 
-// Pre-declare or scope function cleanly to resolve execution reference errors
 export async function openContactDetail(contact, facility) {
     const app = document.getElementById('app');
     if (!app) return;
@@ -36,9 +35,9 @@ export async function openContactDetail(contact, facility) {
         </div>
     `;
 
-    // Fetch matching image records using standard filter mapping formats
+    // Corrected to lowercase 'images' route matching standard Supabase design configurations
     const { data: images } = await supabase
-        .from('IMAGES')
+        .from('images')
         .select('*')
         .eq('entity_type', 'contact')
         .eq('entity_id', contact.id);
@@ -52,9 +51,13 @@ export async function openContactDetail(contact, facility) {
         avatarContainer.innerHTML = `<div style="width:100px; height:100px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; margin:0 auto; border:3px solid #f5c400;">${(contact.Name || 'U').charAt(0).toUpperCase()}</div>`;
     }
 
-    if (typeof renderImageManagerSection === 'function') {
-        renderImageManagerSection('contact', contact.id, document.getElementById('contactImageManagerContainer'));
-    }
+    // Defer the image manager invocation until the stack frame finishes layout rendering
+    setTimeout(() => {
+        const managerContainer = document.getElementById('contactImageManagerContainer');
+        if (managerContainer && typeof renderImageManagerSection === 'function') {
+            renderImageManagerSection('contact', contact.id, managerContainer);
+        }
+    }, 0);
 
     document.getElementById('closeDetailBtn').onclick = () => {
         renderContacts({ facility });
@@ -116,7 +119,7 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:34:12 PM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:36:55 PM
             </div>
         </div>
     `;
@@ -137,8 +140,9 @@ export async function renderContacts(data) {
             .eq('open_issue', true)
             .eq('facility_id', facility?.id);
 
+        // Updated database target string path down here as well to fix grid loaders
         const { data: allImages } = await supabase
-            .from('IMAGES')
+            .from('images')
             .select('*')
             .eq('entity_type', 'contact');
 
