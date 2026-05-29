@@ -1,7 +1,7 @@
 /* =================================================
 FILE: views/v3_FacilityContacts.js
 PURPOSE: Render Facility Contacts and Contact Detail View with Clean Direct Routing
-UPDATED: 2026-05-29 08:48:00 AM
+UPDATED: 2026-05-29 02:00:00 PM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -66,10 +66,15 @@ export async function renderContacts(data) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 08:48:00 AM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:00:00 PM
             </div>
         </div>
     `;
+
+    // Bind Back to Dashboard event handler
+    document.getElementById('backBtn').onclick = () => {
+        window.navigateTo('dashboard');
+    };
 
     const contactsGrid = document.getElementById('contactsGrid');
 
@@ -265,7 +270,7 @@ async function openContactDetail(contact, facility) {
             </div>
 
             <div style="margin-top:50px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
-                File: v3_FacilityContacts.js | Updated: 2026-05-29 08:48:00 AM
+                File: v3_FacilityContacts.js | Updated: 2026-05-29 02:00:00 PM
             </div>
         </div>
     `;
@@ -280,7 +285,6 @@ async function openContactDetail(contact, facility) {
     };
 
     document.getElementById('editContactBtn').onclick = () => {
-        // Hydrate configuration setup inside manual input modal for clean updates
         document.getElementById('modalTitle').innerText = `Edit ${contactName}`;
         document.getElementById('manualContactName').value = contactName;
         document.getElementById('manualContactRole').value = contactRole;
@@ -288,7 +292,6 @@ async function openContactDetail(contact, facility) {
         document.getElementById('manualContactEmail').value = contactEmail;
         document.getElementById('manualContactNotes').value = contact.Notes || '';
         
-        // Show file module manager since ID exists securely
         document.getElementById('manualContactImageSection').style.display = 'block';
         renderImageManagerSection(
             document.getElementById('manualContactImageContainer'),
@@ -300,11 +303,9 @@ async function openContactDetail(contact, facility) {
         const modalInstance = document.getElementById('manualContactModal');
         if (modalInstance) {
             modalInstance.style.display = 'flex';
-            // Repoint context tracking
             const saveBtn = document.getElementById('manualContactSaveBtn');
             saveBtn.innerText = "UPDATE DETAILS";
             
-            // Override dynamic save callback handler context explicitly
             saveBtn.onclick = async () => {
                 const nameVal = document.getElementById('manualContactName').value.trim();
                 if (!nameVal) {
@@ -323,7 +324,6 @@ async function openContactDetail(contact, facility) {
                     alert('Error updating contact');
                 } else {
                     modalInstance.style.display = 'none';
-                    // Re-render local layout updates instantly
                     openContactDetail({...contact, ...payload}, facility);
                 }
             };
