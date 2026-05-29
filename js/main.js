@@ -1,7 +1,11 @@
 /* =================================================
 FILE: js/main.js
 PURPOSE: Router for View 1, 2, 3, 4, 5, and 6
-UPDATED: 2026-05-29 06:05:00 PM
+UPDATED: 2026-05-29 06:15:00 PM
+
+STRICT HEADER RULE:
+Do not ever remove or change this header section.
+Always keep this header at the top of current files and new files.
 ================================================= */
 
 import { renderFacilities } from '../views/v1_facilitiesDashboard.js';
@@ -13,7 +17,10 @@ import { renderFacilityImages } from '../views/v6_FacilityImages.js';
 
 window.navigateTo = (view, data = null) => {
     const app = document.getElementById('app');
-    if (!app) return;
+    if (!app) {
+        console.error("Critical Error: Element with ID 'app' not found.");
+        return;
+    }
     
     app.innerHTML = '';
     app.style.backgroundColor = ''; 
@@ -39,17 +46,11 @@ window.navigateTo = (view, data = null) => {
         renderFacilityImages(data);
     }
     else {
+        console.warn(`View "${view}" not recognized. Defaulting to dashboard.`);
         renderFacilities();
     }
 };
 
-// THIS IS THE MISSING PIECE: The Event Listener
-window.addEventListener('navigate', (e) => {
-    const { target, data } = e.detail;
-    window.navigateTo(target, data);
-});
-
-// Initial Start
 document.addEventListener('DOMContentLoaded', () => {
     renderFacilities();
 });
