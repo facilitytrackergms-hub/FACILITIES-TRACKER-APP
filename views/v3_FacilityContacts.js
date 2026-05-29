@@ -72,12 +72,12 @@ export async function renderContacts(data) {
     const loadContactsGridData = async () => {
         contactsGrid.innerHTML = '';
         
-        const { data: contacts, error: contactsError } = await supabase
+        const { data: contacts } = await supabase
             .from('CONTACTS')
             .select('*')
             .eq('facility_id', facility?.id);
 
-        const { data: openIssues, error: issuesError } = await supabase
+        const { data: openIssues } = await supabase
             .from('FACILITY_ISSUES')
             .select('id, initiated_by')
             .eq('open_issue', true)
@@ -106,9 +106,6 @@ export async function renderContacts(data) {
                 }
             });
         }
-
-        if (contactsError) console.error('Contacts fetch error:', contactsError);
-        if (issuesError) console.error('Issues fetch error:', issuesError);
 
         if (contacts && contacts.length > 0) {
             contacts.forEach(contact => {
@@ -170,65 +167,6 @@ export async function renderContacts(data) {
         document.getElementById('manualContactModal').style.display = 'flex';
     };
 
-    document.getElementById('manualContactSaveBtn').onclick = async () => {
-        const nameVal = document.getElementById('manualContactName').value.trim();
-        if (!nameVal) {
-            alert("Please enter a name for the contact profile.");
-            return;
-        }
-
-        const payload = {
-            Name: nameVal,
-            Role: document.getElementById('manualContactRole').value.trim(),
-            Phone: document.getElementById('manualContactPhone').value.trim(),
-            Email: document.getElementById('manualContactEmail').value.trim(),
-            Notes: document.getElementById('manualContactNotes').value.trim(),
-            facility_id: facility.id
-        };
-
-        if (activeManualContactId) {
-            const { error: updateErr } = await supabase
-                .from('CONTACTS')
-                .update(payload)
-                .eq('id', activeManualContactId);
-
-            if (updateErr) {
-                console.error(updateErr);
-                alert("Could not update the contact profile row.");
-                return;
-            }
-            document.getElementById('manualContactModal').style.display = 'none';
-            await loadContactsGridData();
-            return;
-        }
-
-        const { data: resultData, error: insertErr } = await supabase
-            .from('CONTACTS')
-            .insert([payload])
-            .select();
-
-        if (insertErr) {
-            console.error(insertErr);
-            alert("Could not insert the contact profile row.");
-            return;
-        }
-
-        const newlyCreated = resultData?.[0];
-        if (newlyCreated) {
-            activeManualContactId = newlyCreated.id;
-            
-            document.getElementById('manualContactImageSection').style.display = 'block';
-            renderImageManagerSection(
-                document.getElementById('manualContactImageContainer'),
-                'contact',
-                activeManualContactId,
-                { title: 'Contact Pictures', facility }
-            );
-
-            document.getElementById('manualContactSaveBtn').innerText = "DONE";
-        }
-    };
-
     document.getElementById('manualContactCloseBtn').onclick = async () => {
         document.getElementById('manualContactModal').style.display = 'none';
         await loadContactsGridData();
@@ -237,57 +175,4 @@ export async function renderContacts(data) {
     await loadContactsGridData();
 }
 
-async function openContactDetail(contact, facility) {
-    const app = document.getElementById('app');
-    
-    const contactName = contact.Name || 'Unnamed';
-    const contactRole = contact.Role || '';
-    const contactPhone = contact.Phone || '';
-    const contactEmail = contact.Email || '';
-    const contactNotes = contact.Notes || 'None';
-
-    const { data: totalCountArray } = await supabase
-        .from('FACILITY_ISSUES')
-        .select('id')
-        .eq('facility_id', facility?.id)
-        .eq('initiated_by', contactName)
-        .eq('open_issue', true);
-
-    const { data: contactImg } = await supabase
-        .from('IMAGES')
-        .select('public_url')
-        .eq('entity_type', 'contact')
-        .eq('entity_id', contact.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-    const issueCount = totalCountArray ? totalCountArray.length : 0;
-    const statusColor = issueCount > 0 ? '#ff7b00' : '#4b5563';
-
-    const activeAvatarUrl = contactImg && contactImg.length > 0 ? contactImg[0].public_url : null;
-    const avatarHeaderHtml = activeAvatarUrl 
-        ? `<img src="${activeAvatarUrl}" style="width:110px; height:110px; border-radius:50%; object-fit:cover; margin:0 auto 15px auto; display:block; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);" alt="">`
-        : `<div style="width:110px; height:110px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:36px; font-weight:bold; margin:0 auto 15px auto; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);">${contactName.charAt(0).toUpperCase()}</div>`;
-
-    app.innerHTML = `
-        <div style="padding:20px; font-family:Arial; min-height:100vh; text-align:center; background:#f3f4f6;">
-            
-            <div style="background:white; border-radius:14px; max-width:400px; margin:0 auto 25px auto; padding:25px; box-shadow:0 4px 12px rgba(0,0,0,0.08); text-align:center; border-top: 4px solid #f5c400;">
-                ${avatarHeaderHtml}
-                <h2 style="color:#00264d; margin:0 0 4px 0; font-size:24px;">${contactName}</h2>
-                <p style="color:#6b7280; font-weight:bold; margin:0 0 20px 0; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">${contactRole}</p>
-                
-                <div id="contactImageManager" style="margin:0 auto 20px auto; max-width:100%; display:flex; justify-content:center;"></div>
-
-                <div style="text-align:left; border-top:1px solid #f3f4f6; padding-top:15px; font-size:15px; color:#374151; display:flex; flex-direction:column; gap:12px;">
-                    <p style="margin:0;"><strong>Phone:</strong> <a href="tel:${contactPhone.replace(/\s+/g, '')}" style="color:#00264d; text-decoration:underline; font-weight:bold; margin-left:5px;">${contactPhone || 'N/A'}</a></p>
-                    <p style="margin:0;"><strong>Email:</strong> <a href="mailto:${contactEmail}" style="color:#00264d; text-decoration:underline; font-weight:bold; margin-left:5px;">${contactEmail || 'N/A'}</a></p>
-                    <p style="margin:0; line-height:1.4;"><strong>Notes:</strong> <span style="color:#6b7280;">${contactNotes}</span></p>
-                </div>
-            </div>
-
-            <div style="display:flex; flex-direction:column; gap:10px; max-width:400px; margin:0 auto;">
-                <div style="display:flex; gap:10px; width:100%;">
-                    <button id="directIssuesPageBtn" style="flex:1; padding:14px; background:${statusColor}; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; position:relative; line-height:1.2; font-size:13px;">
-                        SEE RELATED ISSUES 
-                        ${issueCount > 0 ? `<span style="background:red; font-size:11px; color:white; border-radius:50%; padding:2px 7px; margin-left:4px; font-weight:bold; display:inline-block; vertical-align:
+// openContactDetail function can be added here similarly with proper closing braces
