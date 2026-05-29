@@ -61,32 +61,37 @@ export async function openContactDetail(contact, facility) {
             detail: { target: 'facilityIssues', data: issueData } 
         }));
     };
-
-    // Use dynamic microtask callback sequencing to secure stable lookup references
-    setTimeout(async () => {
-        const managerContainer = document.getElementById('contactImageManagerContainer');
-        if (managerContainer && typeof renderImageManagerSection === 'function') {
+// Replace the existing setTimeout block with this:
+setTimeout(async () => {
+    const managerContainer = document.getElementById('contactImageManagerContainer');
+    
+    // 1. Check if the container actually exists in the DOM now
+    if (managerContainer) {
+        if (typeof renderImageManagerSection === 'function') {
+            // Pass the reference directly to ensure the manager has it
             renderImageManagerSection('contact', contact.id, managerContainer);
         }
+    } else {
+        console.error("Critical: contactImageManagerContainer still not found in DOM.");
+    }
 
-        const { data: images } = await supabase
-            .from('FACILITY_IMAGES')
-            .select('*')
-            .eq('related_type', 'contact')
-            .eq('related_id', contact.id);
+    // 2. Handle Avatar Logic
+    const { data: images } = await supabase
+        .from('FACILITY_IMAGES')
+        .select('*')
+        .eq('related_type', 'contact')
+        .eq('related_id', contact.id);
 
-        const avatarContainer = document.getElementById('detailAvatarContainer');
-        if (avatarContainer) {
-            if (images && images.length > 0) {
-                const latestImg = images.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-                avatarContainer.innerHTML = `<img src="${latestImg.image_url}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);">`;
-            } else {
-                avatarContainer.innerHTML = `<div style="width:100px; height:100px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; margin:0 auto; border:3px solid #f5c400;">${(contact.Name || 'U').charAt(0).toUpperCase()}</div>`;
-            }
+    const avatarContainer = document.getElementById('detailAvatarContainer');
+    if (avatarContainer) {
+        if (images && images.length > 0) {
+            const latestImg = images.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+            avatarContainer.innerHTML = `<img src="${latestImg.image_url}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid #f5c400; box-shadow:0 4px 10px rgba(0,0,0,0.15);">`;
+        } else {
+            avatarContainer.innerHTML = `<div style="width:100px; height:100px; border-radius:50%; background:#00264d; color:white; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; margin:0 auto; border:3px solid #f5c400;">${(contact.Name || 'U').charAt(0).toUpperCase()}</div>`;
         }
-    }, 10);
-}
-
+    }
+}, 50); // Increased to 50ms to allow DOM paint
 export async function renderContacts(data) {
     const app = document.getElementById('app');
     if (!app) return;
