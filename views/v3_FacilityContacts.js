@@ -256,21 +256,28 @@ export async function renderContacts(data) {
         document.getElementById('manualContactModal').style.display = 'none';
         await loadContactsGridData();
     };
-
-    const backBtn = document.getElementById('backBtn');
-    if (backBtn) {
-        backBtn.onclick = () => {
-            const facilityId = facility?.id;
-            if (facilityId) {
-                window.location.hash = `#facilityControls?id=${facilityId}`;
-                window.dispatchEvent(new CustomEvent('navigate', { 
-                    detail: { target: 'facilityControls', data: facility } 
-                }));
-            } else {
-                window.location.hash = `#dashboard`;
-            }
-        };
-    }   
+const backBtn = document.getElementById('backBtn');
+if (backBtn) {
+    console.log("Button found in DOM"); // Check F12 for this
+    backBtn.onclick = (e) => {
+        e.preventDefault();
+        alert("Button Clicked!"); // If this pops up, the code is reaching the button
+        
+        const facilityId = facility?.id || facility?.facility_id;
+        
+        if (facilityId) {
+            window.location.hash = `#facilityControls?id=${facilityId}`;
+        } else {
+            window.location.hash = `#dashboard`;
+        }
+        
+        window.dispatchEvent(new CustomEvent('navigate', { 
+            detail: { target: 'facilityControls', data: facility } 
+        }));
+    };
+} else {
+    console.log("Button NOT found in DOM"); // Check F12 for this
+}   
 
     await loadContactsGridData();
 }
