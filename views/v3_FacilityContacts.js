@@ -217,6 +217,16 @@ async function openContactDetail(contact, facility) {
     const contactEmail = contact.Email || '';
     const contactNotes = contact.Notes || 'None';
 
+    // Query current live issues count assigned to or filed by this specific profile context
+    const { data: totalCountArray } = await supabase
+        .from('FACILITY_ISSUES')
+        .select('id')
+        .eq('facility_id', facility?.id)
+        .eq('initiated_by', contactName);
+
+    const issueCount = totalCountArray ? totalCountArray.length : 0;
+    const statusColor = issueCount > 0 ? '#ff7b00' : '#4b5563';
+
     app.innerHTML = `
         <div style="padding:20px; font-family:Arial; min-height:100vh; text-align:center; background:#f3f4f6;">
             <h2 style="color:#00264d; margin-bottom:5px;">${contactName}</h2>
@@ -230,7 +240,19 @@ async function openContactDetail(contact, facility) {
 
             <div id="contactImageManager" style="margin:20px auto;"></div>
 
+            <!-- DYNAMIC RELATED ISSUES SECTION -->
+            <div id="relatedIssuesWrapper" style="max-width:450px; margin:15px auto; display:none; background:#ffffff; border-radius:10px; padding:15px; text-align:left; box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+                <h4 style="margin-top:0; color:#00264d; border-bottom:1px solid #ddd; padding-bottom:6px; display:flex; justify-content:between;">
+                    <span>ISSUES FOR ${contactName.toUpperCase()}</span>
+                    <button id="inlineAddIssueBtn" style="font-size:11px; background:#28a745; color:white; border:none; padding:3px 8px; border-radius:4px; cursor:pointer;">+ QUICK NEW</button>
+                </h4>
+                <div id="inlineIssueListContainer" style="max-height:240px; overflow-y:auto; font-size:13px; display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+
             <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:25px; max-width:450px; margin-left:auto; margin-right:auto;">
+                <button id="toggleIssuesBtn" style="flex:1; padding:14px; background:${statusColor}; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; position:relative;">
+                    SEE RELATED ISSUES ${issueCount > 0 ? `<span style="background:red; font-size:10px; color:white; border-radius:50%; padding:2px 6px; margin-left:5px;">${issueCount}</span>` : ''}
+                </button>
                 <button id="directReportIssueBtn" style="flex:1; padding:14px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">+ REPORT AN ISSUE</button>
                 <button id="backBtn" style="flex:1; padding:14px; background:#6b7280; color:white; border:none; border-radius:8px; cursor:pointer;">BACK TO LIST</button>
             </div>
@@ -245,6 +267,108 @@ async function openContactDetail(contact, facility) {
     if (imageMount) {
         renderImageManagerSection(imageMount, 'contact', contact.id, { title: 'Contact Image', facility });
     }
+
+    const issuesWrapper = document.getElementById('relatedIssuesWrapper');
+    const issueContainer = document.getElementById('inlineIssueListContainer');
+
+    const refreshInlineIssues = async () => {
+        issueContainer.innerHTML = `<p style="color:#666; font-style:italic; font-size:12px;">Loading issue register...</p>`;
+        const { data: list, error } = await supabase
+            .from('FACILITY_ISSUES')
+            .select('*')
+            .eq('facility_id', facility?.id)
+            .eq('initiated_by', contactName)
+            .order('created_at', { ascending: false });
+
+        if (error || !list || list.length === 0) {
+            issueContainer.innerHTML = `<p style="color:#888; font-style:italic; font-size:12px; margin:10px 0;">No reported issues linked to this manager profile record.</p>`;
+            return;
+        }
+
+        issueContainer.innerHTML = '';
+        list.forEach(issue => {
+            const row = document.createElement('div');
+            row.style.background = '#f9fafb';
+            row.style.border = '1px solid #e5e7eb';
+            row.style.borderRadius = '6px';
+            row.style.padding = '10px';
+            row.style.display = 'flex';
+            row.style.flexDirection = 'column';
+            row.style.gap = '5px';
+
+            row.innerHTML = `
+                <div style="display:flex; justify-content:space-between; font-weight:bold; color:#1f2937;">
+                    <span style="text-transform:capitalize;">⚠️ ${issue.issue_type || 'General Issue'}</span>
+                    <span style="font-size:11px; color:${issue.open_issue ? '#dc2626' : '#16a34a'};">${issue.open_issue ? 'OPEN' : 'RESOLVED'}</span>
+                </div>
+                <div style="color:#4b5563; font-size:12px;">
+                    <textarea id="inlineDesc_${issue.id}" style="width:100%; border:1px solid #ddd; border-radius:4px; padding:4px; font-size:12px; margin-top:3px; font-family:inherit;">${issue.issue_description || ''}</textarea>
+                </div>
+                <div style="display:flex; gap:6px; justify-content:flex-end; margin-top:3px;">
+                    <button class="inlineUpdateBtn" data-id="${issue.id}" style="font-size:11px; background:#00264d; color:white; border:none; padding:3px 8px; border-radius:4px; cursor:pointer;">SAVE</button>
+                    <button class="inlineToggleStatusBtn" data-id="${issue.id}" data-status="${issue.open_issue}" style="font-size:11px; background:#6b7280; color:white; border:none; padding:3px 8px; border-radius:4px; cursor:pointer;">${issue.open_issue ? 'RESOLVE' : 'REOPEN'}</button>
+                    <button class="inlineDelBtn" data-id="${issue.id}" style="font-size:11px; background:#dc2626; color:white; border:none; padding:3px 8px; border-radius:4px; cursor:pointer;">DELETE</button>
+                </div>
+            `;
+            issueContainer.appendChild(row);
+        });
+
+        // Event hooks for Issue CRUD inside row actions
+        issueContainer.querySelectorAll('.inlineUpdateBtn').forEach(b => {
+            b.onclick = async () => {
+                const id = b.getAttribute('data-id');
+                const txt = document.getElementById(`inlineDesc_${id}`).value.trim();
+                await supabase.from('FACILITY_ISSUES').update({ issue_description: txt }).eq('id', id);
+                alert('Issue text updated!');
+                await refreshInlineIssues();
+            };
+        });
+
+        issueContainer.querySelectorAll('.inlineToggleStatusBtn').forEach(b => {
+            b.onclick = async () => {
+                const id = b.getAttribute('data-id');
+                const currentStatus = b.getAttribute('data-status') === 'true';
+                await supabase.from('FACILITY_ISSUES').update({ open_issue: !currentStatus }).eq('id', id);
+                await refreshInlineIssues();
+            };
+        });
+
+        issueContainer.querySelectorAll('.inlineDelBtn').forEach(b => {
+            b.onclick = async () => {
+                if(confirm('Delete this issue record permanently?')) {
+                    const id = b.getAttribute('data-id');
+                    await supabase.from('FACILITY_ISSUES').delete().eq('id', id);
+                    await refreshInlineIssues();
+                }
+            };
+        });
+    };
+
+    document.getElementById('toggleIssuesBtn').onclick = async () => {
+        if (issuesWrapper.style.display === 'none') {
+            issuesWrapper.style.display = 'block';
+            await refreshInlineIssues();
+        } else {
+            issuesWrapper.style.display = 'none';
+        }
+    };
+
+    document.getElementById('inlineAddIssueBtn').onclick = async () => {
+        const type = prompt("Enter Issue Classification Type (e.g. Plumbing, Electrical, Access):", "General Maintenance");
+        if (!type) return;
+        const desc = prompt("Enter explicit issue description details:");
+        if (!desc) return;
+
+        await supabase.from('FACILITY_ISSUES').insert([{
+            facility_id: facility.id,
+            initiated_by: contactName,
+            issue_type: type,
+            issue_description: desc,
+            open_issue: true
+        }]);
+
+        await refreshInlineIssues();
+    };
 
     document.getElementById('backBtn').onclick = () => {
         window.navigateTo('facilityContacts', { facility });
