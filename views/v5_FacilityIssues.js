@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v5_FacilityIssues.js
-UPDATED: 2026-05-29 10:45:00 AM
+UPDATED: 2026-05-29 11:15:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -72,7 +72,7 @@ export async function renderFacilityIssues(facility, contact = null) {
             </div>
 
             <div style="margin-top: 40px; font-size: 10px; color: #94a3b8; border-top: 1px solid #e5e7eb; padding-top: 10px;">
-                File: v5_FacilityIssues.js | Updated: 2026-05-29 10:45:00 AM
+                File: v5_FacilityIssues.js | Updated: 2026-05-29 11:15:00 AM
             </div>
         </div>
     `;
@@ -114,7 +114,12 @@ export async function renderFacilityIssues(facility, contact = null) {
         const imageContainer = document.getElementById('issue-image-container');
         imageContainer.innerHTML = '';
         document.getElementById('issue-image-section').style.display = 'block';
-        renderImageManagerSection(imageContainer, 'issue', item.id, { facility, title: 'Issue Photos' });
+        
+        // FIX: Passing the facility object explicitly
+        renderImageManagerSection(imageContainer, 'issue', item.id, { 
+            facility: facility, 
+            title: 'Issue Photos' 
+        });
 
         document.getElementById('issueModal').style.display = 'flex';
     };
@@ -163,7 +168,13 @@ export async function renderFacilityIssues(facility, contact = null) {
             if (!id && savedItem) {
                 document.getElementById('issueId').value = savedItem.id;
                 document.getElementById('issue-image-section').style.display = 'block';
-                renderImageManagerSection(document.getElementById('issue-image-container'), 'issue', savedItem.id, { facility, title: 'Issue Photos' });
+                
+                // FIX: Passing the facility object explicitly for new records
+                renderImageManagerSection(document.getElementById('issue-image-container'), 'issue', savedItem.id, { 
+                    facility: facility, 
+                    title: 'Issue Photos' 
+                });
+                
                 document.getElementById('saveIssueBtn').innerText = "UPDATE INFO";
             } else {
                 document.getElementById('issueModal').style.display = 'none';
