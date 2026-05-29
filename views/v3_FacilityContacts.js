@@ -257,25 +257,20 @@ export async function renderContacts(data) {
         await loadContactsGridData();
     };
 
- const backBtn = document.getElementById('backBtn');
-if (backBtn) {
-    backBtn.onclick = () => {
-        // Ensure we have an ID, otherwise default to a safe route
-        const facilityId = facility?.id;
-        
-        if (facilityId) {
-            window.location.hash = `#facilityControls?id=${facilityId}`;
-            window.dispatchEvent(new CustomEvent('navigate', { 
-                detail: { target: 'facilityControls', data: facility } 
-            }));
-        } else {
-            // Fallback if the facility object is missing
-            console.warn("Facility data missing, redirecting to home.");
-            window.location.hash = `#dashboard`;
-        }
-    };
-}   
-    
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+        backBtn.onclick = () => {
+            const facilityId = facility?.id;
+            if (facilityId) {
+                window.location.hash = `#facilityControls?id=${facilityId}`;
+                window.dispatchEvent(new CustomEvent('navigate', { 
+                    detail: { target: 'facilityControls', data: facility } 
+                }));
+            } else {
+                window.location.hash = `#dashboard`;
+            }
+        };
+    }   
 
     await loadContactsGridData();
 }
