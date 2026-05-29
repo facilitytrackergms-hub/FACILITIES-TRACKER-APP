@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v4_pendingProjects.js
-UPDATED: 2026-05-28 12:50:00 PM
+UPDATED: 2026-05-28 08:20:00 PM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -26,7 +26,7 @@ export async function renderPendingProjects(facility, contact = null) {
             </div>
             
             <div style="margin-top: 40px; font-size: 10px; color: #94a3b8; border-top: 1px solid #e5e7eb; padding-top: 10px;">
-                File: v4_pendingProjects.js | Updated: 2026-05-28 12:50:00 PM
+                File: v4_pendingProjects.js | Updated: 2026-05-28 08:20:00 PM
             </div>
         </div>
     `;
@@ -35,7 +35,7 @@ export async function renderPendingProjects(facility, contact = null) {
     document.getElementById('addNewProjectBtn').onclick = () => {
         if (window.navigateTo) {
             // Navigate to facilityIssues view, pass facility and optional contact for linking issue
-            window.navigateTo('facilityIssues', { facility, contact });
+            window.navigateTo('facilityIssues', facility, contact);
         }
     };
 
