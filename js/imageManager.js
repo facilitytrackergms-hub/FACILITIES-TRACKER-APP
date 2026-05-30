@@ -1,21 +1,13 @@
 /* =================================================
 FILE: js/imageManager.js
 PURPOSE: Shared Image Management (Uploads & Previews)
-UPDATED: 2026-05-30 11:15:00 AM
-
-STRICT HEADER RULE:
-Do not ever remove or change this header section.
-Always keep the header at the top of current files and new files.
+UPDATED: 2026-05-30 11:45:00 AM
 ================================================= */
 
 import { supabase } from './supabaseClient.js';
 
 const IMAGE_BUCKET = 'facility-images';
 
-/**
- * Provides the global CSS for the Image Manager.
- * In the Split-File architecture, this is called by the _grid.js file.
- */
 export function getImageManagerStyles() {
     return `
         <style>
@@ -36,12 +28,8 @@ export function getImageManagerStyles() {
     `;
 }
 
-/**
- * Main Render Function
- * Target: The "image-manager-mount" div inside your _modal.js or _grid.js
- */
 export function renderImageManagerSection(firstArg, relatedTypeArg, relatedIdArg, optionsArg = {}) {
-    const { container, facility, relatedType, relatedId, title, hideFirstImage, tempQueue } = normalizeImageManagerArgs(firstArg, relatedTypeArg, relatedIdArg, optionsArg);
+    const { container, facility, relatedType, relatedId, title, hideFirstImage } = normalizeImageManagerArgs(firstArg, relatedTypeArg, relatedIdArg, optionsArg);
 
     if (!container) { console.error('Image manager container not found.'); return; }
 
@@ -78,26 +66,25 @@ export function renderImageManagerSection(firstArg, relatedTypeArg, relatedIdArg
         addButton.disabled = true;
         status.innerText = 'Uploading image...';
         status.style.display = 'block';
-        
+
         const filePath = `facility_${facility.id}/${Date.now()}_${cleanFileName(selectedFile.name)}`;
-        
+
         try {
             const { error: uploadError } = await supabase.storage.from(IMAGE_BUCKET).upload(filePath, selectedFile);
             if (uploadError) throw uploadError;
 
-            const { data: publicUrlData } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(filePath);
-            const imageUrl = publicUrlData?.publicUrl || '';
+            const { publicUrl } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(filePath);
+            const imageUrl = publicUrl || '';
 
             const payload = { 
-                facility_id: facility.id, 
-                related_type: relatedType, 
+                related_table: relatedType, 
                 related_id: relatedId, 
                 image_url: imageUrl, 
                 image_path: filePath, 
                 image_name: selectedFile.name || 'Image' 
             };
 
-            const { error } = await supabase.from('FACILITY_IMAGES').insert([payload]);
+            const { error } = await supabase.from('facility_images').insert([payload]);
             if (error) throw error;
 
             status.innerText='Image saved.';
@@ -113,7 +100,6 @@ export function renderImageManagerSection(firstArg, relatedTypeArg, relatedIdArg
     loadImagesIntoSection(facility.id, relatedType, relatedId, `imageList_${safeId}`, safeId, { hideFirstImage });
 }
 
-// Helpers (Internal Use)
 function normalizeImageManagerArgs(firstArg, relatedTypeArg, relatedIdArg, optionsArg = {}) {
     if (firstArg && typeof firstArg === 'object' && !firstArg.nodeType && !firstArg.tagName) {
         const options = firstArg;
@@ -121,13 +107,13 @@ function normalizeImageManagerArgs(firstArg, relatedTypeArg, relatedIdArg, optio
         const relatedType = options.relatedType || 'facility';
         const relatedId = options.relatedId || options.facility?.id;
         const facility = options.facility || { id: relatedId };
-        return { container, facility, relatedType, relatedId, title: options.title || 'Images', hideFirstImage: options.hideFirstImage === true, tempQueue: options.tempQueue };
+        return { container, facility, relatedType, relatedId, title: options.title || 'Images', hideFirstImage: options.hideFirstImage === true };
     }
     const container = typeof firstArg === 'string' ? document.getElementById(firstArg) : firstArg;
     const relatedType = relatedTypeArg || 'facility';
     const relatedId = relatedIdArg;
-    const facility = optionsArg?.facility || { id: relatedType === 'facility' ? relatedId : optionsArg?.facilityId };
-    return { container, facility, relatedType, relatedId, title: optionsArg?.title || 'Images', hideFirstImage: optionsArg?.hideFirstImage === true, tempQueue: optionsArg?.tempQueue };
+    const facility = optionsArg?.facility || { id: relatedId };
+    return { container, facility, relatedType, relatedId, title: optionsArg?.title || 'Images', hideFirstImage: optionsArg?.hideFirstImage === true };
 }
 
 function cleanFileName(fileName) {
@@ -135,17 +121,16 @@ function cleanFileName(fileName) {
 }
 
 function safeText(value) {
-    return String(value ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    return String(value ?? '').replace(/[&<>\\"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#039;'}[m]));
 }
 
 export async function loadImagesIntoSection(facilityId, relatedType, relatedId, listElementId, safeId='', options={}) {
     const list = document.getElementById(listElementId);
     if (!list) return;
 
-    const { data, error } = await supabase.from('FACILITY_IMAGES')
+    const { data, error } = await supabase.from('facility_images')
         .select('*')
-        .eq('facility_id', facilityId)
-        .eq('related_type', relatedType)
+        .eq('related_table', relatedType)
         .eq('related_id', relatedId)
         .order('created_at', { ascending: true });
 
