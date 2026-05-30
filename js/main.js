@@ -26,37 +26,31 @@ window.navigateTo = async (view, context = null) => {
             await renderFacilities();
         } 
         else if (view === 'facility_controls' || view === 'facilityControls') {
-            // MATCHED TO SCREENSHOT: v2_facilityControls.js
             const { renderFacilityControls } = await import('../views/v2_facilityControls.js');
             await renderFacilityControls(context);
         } 
         else if (view === 'facility_contacts' || view === 'facilityContacts') {
-            // MATCHED TO SCREENSHOT: v3_FacilityContacts.js
-            const { renderFacilityContacts } = await import('../views/v3_FacilityContacts.js');
-            await renderFacilityContacts(context);
+            // FIX: Changed { renderFacilityContacts } to { renderContacts } to match v3 file
+            const { renderContacts } = await import('../views/v3_FacilityContacts.js');
+            await renderContacts(context);
         } 
         else if (view === 'pending_projects' || view === 'pendingProjects') {
-            // MATCHED TO SCREENSHOT: v4_pendingProjects.js
             const { renderPendingProjects } = await import('../views/v4_pendingProjects.js');
             await renderPendingProjects(context);
         }
         else if (view === 'facility_issues' || view === 'facilityIssues') {
-            // MATCHED TO SCREENSHOT: v5_FacilityIssues.js
             const { renderFacilityIssues } = await import('../views/v5_FacilityIssues.js');
             await renderFacilityIssues(context);
         }
         else if (view === 'facility_images' || view === 'facilityImages') {
-            // MATCHED TO SCREENSHOT: v6_FacilityImages.js
             const { renderFacilityImages } = await import('../views/v6_FacilityImages.js');
             await renderFacilityImages(context);
         }
         else if (view === 'issue_followups' || view === 'issueFollowups') {
-            // MATCHED TO SCREENSHOT: v7_issueFollowups.js
             const { renderIssueFollowups } = await import('../views/v7_issueFollowups.js');
             await renderIssueFollowups(context);
         }
         else if (view === 'facility_reports' || view === 'facilityReports') {
-            // MATCHED TO SCREENSHOT: v8_reports.js
             const { renderReports } = await import('../views/v8_reports.js');
             await renderReports(context);
         }
@@ -70,8 +64,8 @@ window.navigateTo = async (view, context = null) => {
         app.innerHTML = `
             <div style="padding:40px; text-align:center; font-family:Arial;">
                 <h2 style="color:#dc2625;">Navigation Error</h2>
-                <p style="color:#4b5563;">File path mismatch in <b>${view}</b>.</p>
-                <p style="font-size:0.8em; color:#9ca3af;">Check casing: e.g., v2_facilityControls (Capital C)</p>
+                <p style="color:#4b5563;">Function mismatch or file path error in <b>${view}</b>.</p>
+                <p style="font-size:0.8em; color:#9ca3af;">${err.message}</p>
                 <button onclick="location.reload()" style="margin-top:15px; padding:10px 20px; background:#00264d; color:white; border:none; border-radius:6px; cursor:pointer;">Reload App</button>
             </div>
         `;
