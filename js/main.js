@@ -1,16 +1,14 @@
 /* =================================================
 FILE: js/main.js
 PURPOSE: Router for View 1, 2, 3, 4, 5, 6, 7, and 8
-UPDATED: 2026-05-29 11:45:00 PM
+UPDATED: 2026-05-30 08:15:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
 Always keep this header at the top of current files and new files.
 ================================================= */
 
-// We use Dynamic Imports (await import) inside navigateTo to prevent 404s on startup
-// and to support the new lowercase folder architecture.
-
+// Updated to point to the correct folder "views" and correct filenames.
 window.navigateTo = async (view, context = null) => {
     const app = document.getElementById('app');
     if (!app) {
@@ -26,48 +24,51 @@ window.navigateTo = async (view, context = null) => {
 
     try {
         if (view === 'dashboard' || view === 'facility_dashboard') {
-            const { renderFacilitiesDashboard } = await import('../v1_facility_dashboard/dashboard_v1_grid.js');
-            await renderFacilitiesDashboard();
+            // FIXED: Path and Function name updated to match v1_facilitiesDashboard.js
+            const { renderFacilities } = await import('./views/v1_facilitiesDashboard.js');
+            await renderFacilities();
         } 
         else if (view === 'facility_controls' || view === 'facilityControls') {
-            const { renderFacilityControls } = await import('../v2_facility_controls/controls_v2_grid.js');
+            // Ensure these files exist in the /views/ folder or update paths accordingly
+            const { renderFacilityControls } = await import('./views/v2_facility_controls.js');
             await renderFacilityControls(context);
         } 
         else if (view === 'facility_contacts' || view === 'facilityContacts') {
-            const { renderFacilityContacts } = await import('../v3_facility_contacts/contacts_v3_grid.js');
+            const { renderFacilityContacts } = await import('./views/v3_facility_contacts.js');
             await renderFacilityContacts(context);
         } 
         else if (view === 'pending_projects' || view === 'pendingProjects') {
-            const { renderPendingProjects } = await import('../v4_pending_projects/projects_v4_grid.js');
+            const { renderPendingProjects } = await import('./views/v4_pending_projects.js');
             await renderPendingProjects(context);
         }
         else if (view === 'facility_issues' || view === 'facilityIssues') {
-            const { renderFacilityIssues } = await import('../v5_facility_issues/issues_v5_grid.js');
+            const { renderFacilityIssues } = await import('./views/v5_facility_issues.js');
             await renderFacilityIssues(context);
         }
         else if (view === 'facility_images' || view === 'facilityImages') {
-            const { renderFacilityImages } = await import('../v6_facility_images/images_v6_grid.js');
+            const { renderFacilityImages } = await import('./views/v6_facility_images.js');
             await renderFacilityImages(context);
         }
         else if (view === 'issue_followups' || view === 'issueFollowups') {
-            const { renderIssueFollowups } = await import('../v7_issue_followups/followups_v7_grid.js');
+            const { renderIssueFollowups } = await import('./views/v7_issue_followups.js');
             await renderIssueFollowups(context);
         }
         else if (view === 'facility_reports' || view === 'facilityReports') {
-            const { renderReports } = await import('../v8_reports/reports_v8_grid.js');
+            const { renderReports } = await import('./views/v8_reports.js');
             await renderReports(context);
         }
         else {
             console.warn(`View "${view}" not recognized. Defaulting to dashboard.`);
-            const { renderFacilitiesDashboard } = await import('../v1_facility_dashboard/dashboard_v1_grid.js');
-            await renderFacilitiesDashboard();
+            const { renderFacilities } = await import('./views/v1_facilitiesDashboard.js');
+            await renderFacilities();
         }
     } catch (err) {
         console.error("Navigation Error:", err);
         app.innerHTML = `
             <div style="padding:40px; text-align:center; font-family:Arial;">
                 <h2 style="color:#dc2625;">Navigation Error</h2>
-                <p style="color:#4b5563;">Could not load the requested view. This is usually due to a missing file or folder.</p>
+                <p style="color:#4b5563;">Could not load the requested view: <b>${view}</b></p>
+                <p style="font-size: 0.8em; color: #9ca3af;">Check if the file exists in the /views/ folder.</p>
                 <button onclick="location.reload()" style="padding:10px 20px; background:#00264d; color:white; border:none; border-radius:6px; cursor:pointer;">Reload App</button>
             </div>
         `;
@@ -76,7 +77,5 @@ window.navigateTo = async (view, context = null) => {
 
 // --- INITIAL LOAD ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Default starting point: Dashboard
-    // If you want to force a specific view for testing, change 'dashboard' to 'facility_contacts'
     window.navigateTo('dashboard');
 });
