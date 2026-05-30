@@ -1,6 +1,7 @@
 /* =================================================
 FILE: js/imageManager.js
-UPDATED: 2026-05-29 04:10:00 PM
+PURPOSE: Shared Image Management (Uploads & Previews)
+UPDATED: 2026-05-30 11:15:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -11,6 +12,10 @@ import { supabase } from './supabaseClient.js';
 
 const IMAGE_BUCKET = 'facility-images';
 
+/**
+ * Provides the global CSS for the Image Manager.
+ * In the Split-File architecture, this is called by the _grid.js file.
+ */
 export function getImageManagerStyles() {
     return `
         <style>
@@ -26,43 +31,15 @@ export function getImageManagerStyles() {
             .image-manager-delete { background:#dc2626; }
             .image-manager-add-btn { background:#28a745; color:white; border:none; padding:9px 14px; border-radius:7px; font-weight:bold; cursor:pointer; }
             .image-manager-hidden-file { display:none; }
-            .image-manager-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:3000; }
-            .image-manager-box { background:white; padding:20px; border-radius:12px; width:90%; max-width:400px; text-align:left; box-shadow:0 4px 15px rgba(0,0,0,0.3); }
             .image-manager-status { display:none; margin-top:8px; font-size:12px; font-weight:bold; color:#00264d; text-align:center; }
         </style>
     `;
 }
 
-function normalizeImageManagerArgs(firstArg, relatedTypeArg, relatedIdArg, optionsArg = {}) {
-    if (firstArg && typeof firstArg === 'object' && !firstArg.nodeType && !firstArg.tagName) {
-        const options = firstArg;
-        const container = options.container || document.getElementById(options.containerId);
-        const relatedType = options.relatedType || 'facility';
-        const relatedId = options.relatedId || options.facility?.id;
-        const facility = options.facility || { id: relatedId };
-        return { container, facility, relatedType, relatedId, title: options.title || 'Images', hideFirstImage: options.hideFirstImage === true, tempQueue: options.tempQueue };
-    }
-    const container = typeof firstArg === 'string' ? document.getElementById(firstArg) : firstArg;
-    const relatedType = relatedTypeArg || 'facility';
-    const relatedId = relatedIdArg;
-    const facility = optionsArg?.facility || { id: relatedType === 'facility' ? relatedId : optionsArg?.facilityId };
-    return { container, facility, relatedType, relatedId, title: optionsArg?.title || 'Images', hideFirstImage: optionsArg?.hideFirstImage === true, tempQueue: optionsArg?.tempQueue };
-}
-
-function cleanFileName(fileName) {
-    const name = fileName || 'facility-image.jpg';
-    return name.replace(/[^a-zA-Z0-9._-]/g, '_');
-}
-
-function safeText(value) {
-    return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-}
-
+/**
+ * Main Render Function
+ * Target: The "image-manager-mount" div inside your _modal.js or _grid.js
+ */
 export function renderImageManagerSection(firstArg, relatedTypeArg, relatedIdArg, optionsArg = {}) {
     const { container, facility, relatedType, relatedId, title, hideFirstImage, tempQueue } = normalizeImageManagerArgs(firstArg, relatedTypeArg, relatedIdArg, optionsArg);
 
@@ -98,39 +75,67 @@ export function renderImageManagerSection(firstArg, relatedTypeArg, relatedIdArg
         const selectedFile = fileInput.files && fileInput.files[0];
         if (!selectedFile) return;
 
-        // If relatedId is a temporary UUID, queue in memory
-        if (relatedId.length === 36 && tempQueue) {
-            if (!tempQueue[relatedId]) tempQueue[relatedId] = [];
-            tempQueue[relatedId].push(selectedFile);
-            status.innerText = 'Image queued (will attach after saving issue)';
-            status.style.display = 'block';
-            fileInput.value = '';
-            return;
-        }
-
         addButton.disabled = true;
         status.innerText = 'Uploading image...';
         status.style.display = 'block';
-        fileInput.value = '';
-
+        
         const filePath = `facility_${facility.id}/${Date.now()}_${cleanFileName(selectedFile.name)}`;
-        const { error: uploadError } = await supabase.storage.from(IMAGE_BUCKET).upload(filePath, selectedFile, { cacheControl:'3600', upsert:false });
-        if (uploadError) { console.error(uploadError); status.innerText='Upload failed.'; addButton.disabled=false; return; }
+        
+        try {
+            const { error: uploadError } = await supabase.storage.from(IMAGE_BUCKET).upload(filePath, selectedFile);
+            if (uploadError) throw uploadError;
 
-        const { data: publicUrlData } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(filePath);
-        const imageUrl = publicUrlData?.publicUrl || '';
+            const { data: publicUrlData } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(filePath);
+            const imageUrl = publicUrlData?.publicUrl || '';
 
-        const payload = { facility_id: facility.id, related_type: relatedType, related_id: relatedId, image_url:imageUrl, image_path:filePath, image_name:selectedFile.name||'Image', image_notes:'', uploaded_by:'' };
-        const { error } = await supabase.from('FACILITY_IMAGES').insert([payload]);
-        if (error) { console.error(error); status.innerText='Save failed.'; addButton.disabled=false; return; }
+            const payload = { 
+                facility_id: facility.id, 
+                related_type: relatedType, 
+                related_id: relatedId, 
+                image_url: imageUrl, 
+                image_path: filePath, 
+                image_name: selectedFile.name || 'Image' 
+            };
 
-        status.innerText='Image saved.';
-        addButton.disabled=false;
+            const { error } = await supabase.from('FACILITY_IMAGES').insert([payload]);
+            if (error) throw error;
 
-        await loadImagesIntoSection(facility.id, relatedType, relatedId, `imageList_${safeId}`, safeId, { hideFirstImage });
+            status.innerText='Image saved.';
+            await loadImagesIntoSection(facility.id, relatedType, relatedId, `imageList_${safeId}`, safeId, { hideFirstImage });
+        } catch (err) {
+            console.error(err);
+            status.innerText='Error handling image.';
+        } finally {
+            addButton.disabled = false;
+        }
     };
 
     loadImagesIntoSection(facility.id, relatedType, relatedId, `imageList_${safeId}`, safeId, { hideFirstImage });
+}
+
+// Helpers (Internal Use)
+function normalizeImageManagerArgs(firstArg, relatedTypeArg, relatedIdArg, optionsArg = {}) {
+    if (firstArg && typeof firstArg === 'object' && !firstArg.nodeType && !firstArg.tagName) {
+        const options = firstArg;
+        const container = options.container || document.getElementById(options.containerId);
+        const relatedType = options.relatedType || 'facility';
+        const relatedId = options.relatedId || options.facility?.id;
+        const facility = options.facility || { id: relatedId };
+        return { container, facility, relatedType, relatedId, title: options.title || 'Images', hideFirstImage: options.hideFirstImage === true, tempQueue: options.tempQueue };
+    }
+    const container = typeof firstArg === 'string' ? document.getElementById(firstArg) : firstArg;
+    const relatedType = relatedTypeArg || 'facility';
+    const relatedId = relatedIdArg;
+    const facility = optionsArg?.facility || { id: relatedType === 'facility' ? relatedId : optionsArg?.facilityId };
+    return { container, facility, relatedType, relatedId, title: optionsArg?.title || 'Images', hideFirstImage: optionsArg?.hideFirstImage === true, tempQueue: optionsArg?.tempQueue };
+}
+
+function cleanFileName(fileName) {
+    return (fileName || 'image.jpg').replace(/[^a-zA-Z0-9._-]/g, '_');
+}
+
+function safeText(value) {
+    return String(value ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 }
 
 export async function loadImagesIntoSection(facilityId, relatedType, relatedId, listElementId, safeId='', options={}) {
@@ -142,29 +147,18 @@ export async function loadImagesIntoSection(facilityId, relatedType, relatedId, 
         .eq('facility_id', facilityId)
         .eq('related_type', relatedType)
         .eq('related_id', relatedId)
-        .order('created_at',{ascending:true});
+        .order('created_at', { ascending: true });
 
-    if (error) { console.error(error); list.innerHTML='<div style="padding:10px; color:#dc2626;">Could not load images.</div>'; return; }
+    if (error) { list.innerHTML='Error.'; return; }
 
-    let images = data || [];
-    if (options.hideFirstImage && images.length) images = images.slice(1);
-    images = images.reverse();
-
-    if (!images.length) { list.innerHTML='<div style="padding:10px; color:#666;">No images found.</div>'; return; }
+    let images = (data || []).reverse();
+    if (!images.length) { list.innerHTML='<div style="font-size:12px; color:#666;">No images found.</div>'; return; }
 
     list.innerHTML = images.map(img => `
         <div class="image-manager-card">
-            <img src="${safeText(img.image_url)}" class="image-manager-preview" alt="${safeText(img.image_name||'Image')}">
-            <div class="image-manager-name">${safeText(img.image_name||'Image')}</div>
-            <div class="image-manager-notes">${safeText(img.image_notes||'')}</div>
+            <img src="${safeText(img.image_url)}" class="image-manager-preview">
+            <div class="image-manager-name">${safeText(img.image_name)}</div>
             <a href="${safeText(img.image_url)}" target="_blank" class="image-manager-open">Open</a>
-            <button class="image-manager-delete" data-image-id="${safeText(img.id)}" data-image-path="${safeText(img.image_path||'')}">Delete</button>
         </div>
     `).join('');
-
-    list.querySelectorAll('.image-manager-delete').forEach(button => {
-        button.onclick = () => {
-            alert('Use delete modal in v5_FacilityIssues.js to remove images.');
-        };
-    });
 }
