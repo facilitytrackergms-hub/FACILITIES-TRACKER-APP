@@ -86,14 +86,14 @@ export async function renderFacilityControls(data) {
 
         // Fetch count for Standard Individual Concerns
         const { data: standardIssues, error: issuesErr } = await supabase
-            .from('FACILITY_ISSUES')
+            .from('facility_issues')
             .select('id')
             .eq('open_issue', true)
             .eq('facility_id', facility.id);
 
         // Fetch count for Project Tasks
         const { data: projectIssues, error: projectsErr } = await supabase
-            .from('FACILITY_PROJECTS')
+            .from('facility_projects')
             .select('*')
             .eq('facility_id', facility.id)
             .eq('active_status', true);
@@ -129,7 +129,7 @@ export async function renderFacilityControls(data) {
                 { 
                     event: '*', 
                     schema: 'public', 
-                    table: 'FACILITY_ISSUES', 
+                    table: 'facility_issues', 
                     filter: `facility_id=eq.${facility.id}` 
                 },
                 () => loadBadges()
