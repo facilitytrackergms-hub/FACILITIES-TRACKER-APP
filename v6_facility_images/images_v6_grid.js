@@ -1,0 +1,58 @@
+/* =================================================
+FILE: images_v6_grid.js
+PURPOSE: Render Facility Gallery and Image Manager Wrapper
+UPDATED: 2026-05-29 11:20:00 PM
+
+STRICT HEADER RULE:
+Do not ever remove or change this header section.
+Always keep this header at the top of current files and new files.
+================================================= */
+
+import { renderImageManagerSection } from '../js/imageManager.js';
+
+export async function renderFacilityImages(data) {
+    const app = document.getElementById('app');
+    if (!app) return;
+
+    // Unpack unified payload container or fallback safely
+    const facility = data?.facility ? data.facility : data;
+
+    app.innerHTML = `
+        <div style="padding:20px; font-family:Arial; background:#f3f4f6; min-height:100vh; text-align:center;">
+            <h1 style="color:#00264d; margin-top:0; margin-bottom:8px; font-size:28px; font-weight:900;">
+                FACILITY GALLERY
+            </h1>
+
+            <div style="font-size:18px; font-weight:bold; color:#64748b; margin-bottom:20px;">
+                ${facility?.Name || ''}
+            </div>
+
+            <div id="galleryImageManager" style="background:white; border-radius:18px; padding:15px; box-shadow:0 4px 14px rgba(0,0,0,0.08); max-width:700px; margin:0 auto;"></div>
+
+            <button id="backBtn" style="margin-top:25px; width:100%; max-width:320px; padding:14px; background:#6b7280; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">
+                BACK TO CONTROLS
+            </button>
+
+            <div style="margin-top:40px; font-size:10px; color:#94a3b8; border-top:1px solid #e5e7eb; padding-top:10px;">
+                File: images_v6_grid.js | Updated: 2026-05-29 11:20:00 PM
+            </div>
+        </div>
+    `;
+
+    const wrapper = document.getElementById('galleryImageManager');
+
+    if (!facility || !facility.id) {
+        wrapper.innerHTML = '<div style="padding:20px; color:red;">Facility information missing.</div>';
+        return;
+    }
+
+    // Mount image manager utilizing unified context architecture
+    renderImageManagerSection(wrapper, 'facility', facility.id, { facility });
+
+    document.getElementById('backBtn').onclick = () => {
+        if (window.navigateTo) {
+            // Using the lowercase view name established in your new router
+            window.navigateTo('facility_controls', { facility });
+        }
+    };
+}
