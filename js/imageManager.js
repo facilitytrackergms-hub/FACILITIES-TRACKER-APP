@@ -1,7 +1,7 @@
 /* =================================================
 FILE: js/imageManager.js
 PURPOSE: Shared Image Management (Uploads & Previews)
-UPDATED: 2026-05-30 11:45:00 AM
+UPDATED: 2026-06-01 08:30:00 AM
 ================================================= */
 
 import { supabase } from './supabaseClient.js';
@@ -121,7 +121,14 @@ function cleanFileName(fileName) {
 }
 
 function safeText(value) {
-    return String(value ?? '').replace(/[&<>\\"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#039;'}[m]));
+    const map = {
+        '&':'&amp;',
+        '<':'&lt;',
+        '>':'&gt;',
+        '"':'&quot;',
+        "'":'&#039;'
+    };
+    return String(value ?? '').replace(/[&<>\"']/g, m => map[m]);
 }
 
 export async function loadImagesIntoSection(facilityId, relatedType, relatedId, listElementId, safeId='', options={}) {
