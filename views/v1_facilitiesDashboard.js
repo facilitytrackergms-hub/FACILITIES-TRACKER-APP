@@ -1,6 +1,6 @@
 /* =================================================
 FILE: views/v1_facilitiesDashboard.js
-UPDATED: 2026-05-29 07:40:00 AM
+UPDATED: 2026-06-01 08:00:00 AM
 
 STRICT HEADER RULE:
 Do not ever remove or change this header section.
@@ -44,7 +44,6 @@ export async function renderFacilities() {
             <div id="modal" class="modal-overlay">
                 <div class="modal-content">
                     <h3 id="modalTitle">Add New Facility</h3>
-
                     <div id="facility-fields">
                         <input type="text" id="name" placeholder="Facility Name">
                         <input type="text" id="address" placeholder="Address">
@@ -53,12 +52,10 @@ export async function renderFacilities() {
                             Add/Delete Facility Image
                         </button>
                     </div>
-
                     <div id="post-save-images">
                         <p style="font-weight: bold; color: #28a745; margin-bottom: 10px;">Facility Saved. Add or Delete Image Below:</p>
                         <div id="image-manager-mount"></div>
                     </div>
-
                     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
                         <button id="saveBtn" class="facility-btn new-btn" style="width:100%; margin: 0 auto;">Save Facility</button>
                         <button id="closeModal" class="facility-btn" style="background:#666; width:100%; margin: 0 auto;">Close</button>
@@ -75,7 +72,7 @@ export async function renderFacilities() {
             </div>
 
             <div style="margin-top: 50px; font-size: 0.8em; color: #666; border-top: 1px solid #ccc; padding-top: 10px;">
-                File: v1_facilitiesDashboard.js | Updated: 2026-05-29 07:40:00 AM
+                File: v1_facilitiesDashboard.js | Updated: 2026-06-01 08:00:00 AM
             </div>
         </div>
     `;
@@ -109,16 +106,6 @@ export async function renderFacilities() {
     document.getElementById('closeWarning').onclick = () => warningModal.style.display = 'none';
 
     async function saveFacilityAndOpenImages() {
-        if (createdFacility && createdFacility.id) {
-            facilityFields.style.display = 'none';
-            saveBtn.style.display = 'none';
-            document.getElementById('modalTitle').innerText = "Facility Image: " + createdFacility.Name;
-            imageSection.style.display = 'block';
-            imageMount.innerHTML = '';
-            renderImageManagerSection(imageMount, 'facility', createdFacility.id, { title: 'Facility Image' });
-            return;
-        }
-
         const name = document.getElementById('name').value.trim();
         const address = document.getElementById('address').value.trim();
         const phone = document.getElementById('phone').value.trim();
